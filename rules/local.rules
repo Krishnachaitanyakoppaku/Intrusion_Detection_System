@@ -41,3 +41,6 @@ alert udp any any -> any 53 (msg:"DNS Query"; priority:5)
 
 # Log all traffic for testing
 log ip any any -> any any (msg:"All IP Traffic"; priority:5)
+
+alert tcp any any -> any 80 (msg:"Monitor for XSS attacks"; content:"test"; priority:1)
+alert tcp any any -> any 80 (msg:"Monitor directory traversal attempts"; content:"test"; priority:1)
