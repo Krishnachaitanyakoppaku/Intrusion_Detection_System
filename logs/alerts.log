@@ -1,0 +1,14 @@
+# IDS DSL Engine - Alert Log File
+# This file will contain generated alerts when the IDS engine is running
+# Alerts are automatically appended to this file during operation
+
+# Example alert format:
+# [timestamp] ALERT: Rule message
+#   Source: IP:port -> Destination: IP:port
+#   Protocol: protocol_number, Severity: priority_level
+#   ---
+
+# The file will be populated when the IDS engine detects threats
+# based on the rules defined in rules/local.rules
+
+

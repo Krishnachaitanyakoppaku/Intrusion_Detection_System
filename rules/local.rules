@@ -1,0 +1,45 @@
+# IDS DSL Engine - Sample Rules
+# This file contains example rules for testing the IDS engine
+
+# SQL Injection Detection
+alert tcp any any -> any 80 (msg:"SQL Injection Attempt"; content:"' OR 1=1"; priority:1)
+alert tcp any any -> any 80 (msg:"SQL Injection Attempt"; content:"UNION SELECT"; priority:1)
+alert tcp any any -> any 80 (msg:"SQL Injection Attempt"; content:"DROP TABLE"; priority:1)
+
+# Cross-Site Scripting (XSS) Detection
+alert tcp any any -> any 80 (msg:"XSS Attack"; content:"<script>"; priority:2)
+alert tcp any any -> any 80 (msg:"XSS Attack"; content:"javascript:"; priority:2)
+alert tcp any any -> any 80 (msg:"XSS Attack"; content:"onload="; priority:2)
+
+# Port Scan Detection
+alert tcp any any -> any any (msg:"Port Scan"; content:"SYN"; priority:3)
+alert tcp any any -> any any (msg:"Port Scan"; content:"FIN"; priority:3)
+
+# ICMP Ping Flood
+alert icmp any any -> any any (msg:"ICMP Flood"; priority:4)
+
+# Malicious File Upload
+alert tcp any any -> any 80 (msg:"Malicious File Upload"; content:".exe"; priority:2)
+alert tcp any any -> any 80 (msg:"Malicious File Upload"; content:".php"; priority:2)
+
+# Directory Traversal
+alert tcp any any -> any 80 (msg:"Directory Traversal"; content:"../"; priority:2)
+alert tcp any any -> any 80 (msg:"Directory Traversal"; content:"..\\"; priority:2)
+
+# Command Injection
+alert tcp any any -> any 80 (msg:"Command Injection"; content:"|"; priority:1)
+alert tcp any any -> any 80 (msg:"Command Injection"; content:";"; priority:1)
+alert tcp any any -> any 80 (msg:"Command Injection"; content:"&&"; priority:1)
+
+# Brute Force Attack
+alert tcp any any -> any 22 (msg:"SSH Brute Force"; priority:3)
+alert tcp any any -> any 23 (msg:"Telnet Brute Force"; priority:3)
+
+# Suspicious Network Activity
+alert tcp any any -> any 443 (msg:"HTTPS Traffic"; priority:5)
+alert udp any any -> any 53 (msg:"DNS Query"; priority:5)
+
+# Log all traffic for testing
+log ip any any -> any any (msg:"All IP Traffic"; priority:5)
+
+
