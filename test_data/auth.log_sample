@@ -27,5 +27,3 @@ Jan 15 10:45:01 server system[1111]: User admin logged in from 192.168.1.400
 Jan 15 10:45:02 server system[1111]: User guest logged in from 192.168.1.400
 Jan 15 10:45:03 server system[1111]: User test logged in from 192.168.1.400
 Jan 15 10:45:04 server system[1111]: User user logged in from 192.168.1.400
-
-

@@ -66,5 +66,3 @@ except ImportError:
 except Exception as e:
     print(f"⚠️  Could not create icon: {e}")
     print("The application will work without an icon.")
-
-

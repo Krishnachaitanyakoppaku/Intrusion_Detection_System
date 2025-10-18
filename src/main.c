@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -168,5 +169,3 @@ void print_version(void) {
     printf("A Domain-Specific Query Language for Intrusion Detection Systems\n");
     printf("Built with Lex, Yacc, and libpcap\n");
 }
-
-

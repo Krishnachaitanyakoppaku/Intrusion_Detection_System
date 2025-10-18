@@ -29,5 +29,3 @@ read
 
 # Run the setup script
 ./setup_and_run.sh
-
-

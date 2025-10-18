@@ -1,11 +1,28 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE
+#endif
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE
+#endif
+
+#include <sys/types.h>
+#include <stdint.h>
+
+// Define BSD types if not already defined
+#ifndef u_char
+typedef unsigned char u_char;
+typedef unsigned short u_short;
+typedef unsigned int u_int;
+#endif
+
 #include <pcap.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
-#include <netinet/icmp.h>
+#include <netinet/ip_icmp.h>
 #include <arpa/inet.h>
 #include <time.h>
 #include "../include/ast.h"
@@ -66,5 +83,3 @@ extern pcap_t* pcap_handle;
 extern int engine_running;
 
 #endif // ENGINE_H
-
-

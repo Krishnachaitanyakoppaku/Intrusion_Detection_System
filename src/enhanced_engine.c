@@ -1,9 +1,14 @@
+#define _GNU_SOURCE
+#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
+#include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 #include <regex.h>
 #include <time.h>
+#include <unistd.h>
 #include "../include/ast.h"
 #include "../include/engine.h"
 
@@ -111,5 +116,3 @@ int start_enhanced_engine(Rule* rules, EngineConfig* config, const char* ai_api_
     
     return 0;
 }
-
-

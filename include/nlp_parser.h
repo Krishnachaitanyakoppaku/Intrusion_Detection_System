@@ -29,5 +29,3 @@ int is_valid_port(const char* port);
 char* extract_keywords(const char* natural_language);
 
 #endif // NLP_PARSER_H
-
-

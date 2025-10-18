@@ -10,5 +10,3 @@
 
 # The file will be populated when the IDS engine detects threats
 # based on the rules defined in rules/local.rules
-
-

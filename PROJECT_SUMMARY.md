@@ -258,5 +258,3 @@ The IDS DSL Engine provides a complete, production-ready implementation of a dom
 - **Software engineering** with modular design and comprehensive testing
 
 The implementation is ready for use in educational, research, and development environments, with clear documentation and examples for extension and customization.
-
-

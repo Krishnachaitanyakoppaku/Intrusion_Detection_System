@@ -195,5 +195,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Built with Lex, Yacc, and libpcap
 - Inspired by Snort rule syntax
 - Designed for educational and research purposes
-
-

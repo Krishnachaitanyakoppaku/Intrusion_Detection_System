@@ -98,5 +98,3 @@ int predict_threat_level(ThreatAnalytics* historical, int time_window_minutes) {
         return 1; // Low threat
     }
 }
-
-

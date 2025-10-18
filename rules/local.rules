@@ -41,5 +41,3 @@ alert udp any any -> any 53 (msg:"DNS Query"; priority:5)
 
 # Log all traffic for testing
 log ip any any -> any any (msg:"All IP Traffic"; priority:5)
-
-

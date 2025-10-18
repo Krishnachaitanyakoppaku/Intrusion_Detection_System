@@ -146,5 +146,3 @@ sudo make uninstall
 ```
 
 This will remove the `ids_engine` binary from `/usr/local/bin/`.
-
-

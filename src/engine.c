@@ -1,3 +1,6 @@
+#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
+#include <sys/types.h>
 #include "../include/engine.h"
 #include <string.h>
 #include <signal.h>
@@ -359,5 +362,3 @@ int parse_icmp_packet(const u_char* packet, int packet_len, PacketInfo* packet_i
     
     return 0;
 }
-
-

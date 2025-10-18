@@ -192,5 +192,3 @@ The IDS DSL Engine follows a modular architecture with clear separation of conce
 - GUI interface
 - Advanced rule compilation
 - Plugin architecture
-
-

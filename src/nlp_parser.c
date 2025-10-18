@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +16,25 @@ typedef struct {
     int success;
     char* error_message;
 } AIResponse;
+
+// Callback function for curl to write response data
+static size_t write_callback(void *contents, size_t size, size_t nmemb, void *userp) {
+    size_t realsize = size * nmemb;
+    AIResponse *response = (AIResponse *)userp;
+    
+    char *ptr = realloc(response->content, response->content ? strlen(response->content) + realsize + 1 : realsize + 1);
+    if (!ptr) {
+        return 0;
+    }
+    
+    if (!response->content) {
+        ptr[0] = '\0';
+    }
+    
+    response->content = ptr;
+    strncat(response->content, (char *)contents, realsize);
+    return realsize;
+}
 
 // Function to make HTTP request to AI API
 AIResponse* call_ai_api(const char* prompt, const char* api_key) {
@@ -78,17 +98,6 @@ AIResponse* call_ai_api(const char* prompt, const char* api_key) {
     }
     
     return response;
-}
-
-// Callback function for curl
-size_t write_callback(void *contents, size_t size, size_t nmemb, AIResponse *response) {
-    size_t total_size = size * nmemb;
-    response->content = realloc(response->content, total_size + 1);
-    if (response->content) {
-        memcpy(response->content, contents, total_size);
-        response->content[total_size] = '\0';
-    }
-    return total_size;
 }
 
 // Convert natural language to DSL rule
@@ -173,5 +182,3 @@ void interactive_nlp_rule_creator(const char* api_key) {
     
     printf("Goodbye!\n");
 }
-
-

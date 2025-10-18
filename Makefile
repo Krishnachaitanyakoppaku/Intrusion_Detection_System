@@ -47,7 +47,7 @@ $(BUILD_DIR)/parser.o: $(SRC_DIR)/parser.y
 	@mkdir -p $(BUILD_DIR)
 	@if command -v bison >/dev/null 2>&1; then \
 		bison -d -o $(SRC_DIR)/parser.tab.c $(SRC_DIR)/parser.y; \
-		mv $(SRC_DIR)/parser.tab.h include/parser.h; \
+		cp $(SRC_DIR)/parser.tab.h include/parser.h; \
 		$(CC) $(CFLAGS) -c $(SRC_DIR)/parser.tab.c -o $@; \
 	else \
 		echo "Error: bison not found. Please install bison and flex:"; \

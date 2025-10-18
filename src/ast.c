@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "../include/ast.h"
 #include "../include/parser.h"
 
@@ -154,5 +155,3 @@ void print_rule_list(Rule* rule_list) {
         printf("No rules found.\n");
     }
 }
-
-

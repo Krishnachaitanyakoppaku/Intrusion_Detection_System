@@ -28,5 +28,3 @@
 # curl -s http://httpbin.org/get
 # ssh -o ConnectTimeout=1 localhost
 # telnet localhost 80
-
-

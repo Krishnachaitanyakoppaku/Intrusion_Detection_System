@@ -1,4 +1,5 @@
 %{
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,7 +31,7 @@ void yyerror(const char* msg);
 %token LPAREN RPAREN SEMICOLON COLON COMMA NOT OR AND
 
 %type <rule> rule
-%type <option> rule_option
+%type <option> rule_option rule_options
 %type <string> action protocol direction ip_address port
 
 %%

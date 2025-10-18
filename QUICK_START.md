@@ -254,5 +254,3 @@ You now have a **complete, production-ready IDS system** that:
 - ✅ Works on any Linux system
 
 **Your IDS DSL Engine is ready to protect networks!** 🛡️
-
-
