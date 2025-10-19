@@ -35,6 +35,8 @@ Open your browser and go to: `http://localhost:8080`
 ### **🚨 Live Security Monitoring**
 - **Start Engine**: Click "🚀 Start Engine"
 - **Live Alerts**: See real-time security notifications
+- **Firewall Monitoring**: Detect firewall rule changes and system administration
+- **Process Monitoring**: Track suspicious commands and privilege escalation
 - **Network Traffic**: Monitor different interfaces
 
 ---
@@ -53,6 +55,8 @@ Open your browser and go to: `http://localhost:8080`
 
 ### **✅ Real-Time Monitoring**
 - **Live Alerts**: Instant security notifications
+- **Firewall Monitoring**: Detect ufw reset, iptables changes, system admin commands
+- **Process Monitoring**: Track suspicious processes and privilege escalation
 - **Multiple Interfaces**: lo, eth0, wlan0 support
 - **Severity Levels**: Critical, High, Medium, Low, Info
 
@@ -84,6 +88,7 @@ Open your browser and go to: `http://localhost:8080`
 - **RAM**: 512MB
 - **Disk**: 100MB free space
 - **Network**: Internet connection for AI API
+- **Python**: psutil library for process monitoring
 
 ### **Recommended:**
 - **OS**: Ubuntu 20.04+ or Windows 10+ with WSL
@@ -180,9 +185,10 @@ curl -s http://httpbin.org/get
 - **Background Tasks**: Alert processing, rule management
 
 ### **Files Created:**
-- **Rules**: `rules/local.rules`
-- **Logs**: `logs/alerts.log`
+- **Rules**: `rules/local.rules` (80+ security rules)
+- **Logs**: `logs/alerts.log`, `logs/firewall_monitor.log`
 - **Build**: `bin/simple_ids`
+- **Dependencies**: `requirements.txt`
 
 ---
 
@@ -202,6 +208,8 @@ curl -s http://httpbin.org/get
 - Engine status shows "Running"
 - Live alerts appear in real-time
 - Network traffic is being analyzed
+- Firewall monitoring detects system changes
+- Process monitoring tracks suspicious commands
 
 ---
 

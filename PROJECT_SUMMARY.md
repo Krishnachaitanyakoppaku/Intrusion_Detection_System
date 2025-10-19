@@ -19,6 +19,8 @@ The **IDS DSL Engine** is an advanced, AI-powered Network Intrusion Detection Sy
 
 ### ✅ **Real-Time Monitoring**
 - **Live Packet Capture**: Real-time network traffic analysis using libpcap
+- **Firewall Monitoring**: Detect firewall rule changes and system administration
+- **Process Monitoring**: Track suspicious system processes and commands
 - **Multiple Interface Support**: Monitor loopback, ethernet, and wireless interfaces
 - **Alert System**: Real-time security alerts with severity levels
 - **Historical Logging**: Complete audit trail of security events
@@ -37,9 +39,9 @@ The **IDS DSL Engine** is an advanced, AI-powered Network Intrusion Detection Sy
 - **Components**: Rule creator, rule manager, live monitoring, alert display
 
 ### **Backend (Python Server)**
-- **Technology**: Python 3.8+, HTTP server, RESTful API
-- **Features**: Gemini AI integration, rule management, packet processing
-- **Endpoints**: `/api/convert_rule`, `/api/rules`, `/api/add_rule`, `/api/delete_rule`, `/api/update_rule`
+- **Technology**: Python 3.8+, HTTP server, RESTful API, psutil
+- **Features**: Gemini AI integration, rule management, packet processing, firewall monitoring
+- **Endpoints**: `/api/convert_rule`, `/api/rules`, `/api/add_rule`, `/api/delete_rule`, `/api/update_rule`, `/api/get_firewall_alerts`
 
 ### **IDS Engine (C)**
 - **Technology**: C programming, libpcap, packet analysis
@@ -60,7 +62,9 @@ The **IDS DSL Engine** is an advanced, AI-powered Network Intrusion Detection Sy
 - **Memory Usage**: Optimized for minimal memory footprint
 
 ### **Security Features**
-- **Threat Detection**: SQL injection, XSS, port scans, brute force, malware
+- **Threat Detection**: SQL injection, XSS, port scans, brute force, malware, firewall tampering
+- **Firewall Monitoring**: Detect ufw reset, iptables changes, system administration
+- **Process Monitoring**: Track suspicious commands and privilege escalation
 - **Alert Levels**: 5-level severity system (Critical to Info)
 - **Rule Validation**: Syntax checking and validation
 - **Access Control**: Sudo privileges required for packet capture
@@ -81,6 +85,8 @@ The **IDS DSL Engine** is an advanced, AI-powered Network Intrusion Detection Sy
 - Gemini AI integration for rule conversion
 - RESTful API endpoints for rule management
 - Real-time alert processing
+- Firewall monitoring with psutil
+- Process monitoring and command detection
 - File-based rule storage
 - Error handling and logging
 ```
@@ -110,6 +116,8 @@ The **IDS DSL Engine** is an advanced, AI-powered Network Intrusion Detection Sy
 User Input → Web Interface → Python Server → Gemini AI → DSL Rule
      ↓
 Rule Storage → IDS Engine → Packet Analysis → Alert Generation → Live Display
+     ↓
+Process Monitoring → Firewall Detection → System Alerts → Firewall Logs
 ```
 
 ## 🚀 **Deployment Architecture**

@@ -1,46 +1,170 @@
-# IDS DSL Engine - Sample Rules
-# This file contains example rules for testing the IDS engine
+# IDS DSL Engine - Comprehensive Security Rules
+# This file contains comprehensive security rules for the IDS engine
+
+# =============================================================================
+# WEB APPLICATION SECURITY RULES
+# =============================================================================
 
 # SQL Injection Detection
-alert tcp any any -> any 80 (msg:"SQL Injection Attempt"; content:"' OR 1=1"; priority:1)
-alert tcp any any -> any 80 (msg:"SQL Injection Attempt"; content:"UNION SELECT"; priority:1)
-alert tcp any any -> any 80 (msg:"SQL Injection Attempt"; content:"DROP TABLE"; priority:1)
 
 # Cross-Site Scripting (XSS) Detection
-alert tcp any any -> any 80 (msg:"XSS Attack"; content:"<script>"; priority:2)
-alert tcp any any -> any 80 (msg:"XSS Attack"; content:"javascript:"; priority:2)
-alert tcp any any -> any 80 (msg:"XSS Attack"; content:"onload="; priority:2)
+alert tcp any any -> any 80 (msg:"XSS Attack - Iframe Tag"; content:"<iframe>"; priority:2)
+alert tcp any any -> any 80 (msg:"XSS Attack - Object Tag"; content:"<object>"; priority:2)
+alert tcp any any -> any 80 (msg:"XSS Attack - Embed Tag"; content:"<embed>"; priority:2)
+alert tcp any any -> any 80 (msg:"XSS Attack - Applet Tag"; content:"<applet>"; priority:2)
+
+# Directory Traversal Attacks
+alert tcp any any -> any 80 (msg:"Directory Traversal - Unix Style"; content:"../"; priority:2)
+alert tcp any any -> any 80 (msg:"Directory Traversal - Windows Style"; content:"..\\"; priority:2)
+alert tcp any any -> any 80 (msg:"Directory Traversal - Encoded"; content:"%2e%2e%2f"; priority:2)
+alert tcp any any -> any 80 (msg:"Directory Traversal - Double Encoded"; content:"%252e%252e%252f"; priority:2)
+alert tcp any any -> any 80 (msg:"Directory Traversal - Null Byte"; content:"%00"; priority:2)
+
+# Command Injection Detection
+alert tcp any any -> any 80 (msg:"Command Injection - Pipe"; content:"|"; priority:1)
+alert tcp any any -> any 80 (msg:"Command Injection - Semicolon"; content:";"; priority:1)
+alert tcp any any -> any 80 (msg:"Command Injection - Logical AND"; content:"&&"; priority:1)
+alert tcp any any -> any 80 (msg:"Command Injection - Logical OR"; content:"||"; priority:1)
+alert tcp any any -> any 80 (msg:"Command Injection - Backtick"; content:"`"; priority:1)
+alert tcp any any -> any 80 (msg:"Command Injection - Dollar Sign"; content:"$("; priority:1)
+alert tcp any any -> any 80 (msg:"Command Injection - Newline"; content:"%0a"; priority:1)
+
+# Malicious File Upload Detection
+alert tcp any any -> any 80 (msg:"Malicious File Upload - Executable"; content:".exe"; priority:2)
+alert tcp any any -> any 80 (msg:"Malicious File Upload - PHP Shell"; content:".php"; priority:2)
+alert tcp any any -> any 80 (msg:"Malicious File Upload - ASP Shell"; content:".asp"; priority:2)
+alert tcp any any -> any 80 (msg:"Malicious File Upload - JSP Shell"; content:".jsp"; priority:2)
+alert tcp any any -> any 80 (msg:"Malicious File Upload - Python Script"; content:".py"; priority:2)
+alert tcp any any -> any 80 (msg:"Malicious File Upload - Perl Script"; content:".pl"; priority:2)
+alert tcp any any -> any 80 (msg:"Malicious File Upload - Batch File"; content:".bat"; priority:2)
+alert tcp any any -> any 80 (msg:"Malicious File Upload - Shell Script"; content:".sh"; priority:2)
+
+# =============================================================================
+# NETWORK SECURITY RULES
+# =============================================================================
 
 # Port Scan Detection
-alert tcp any any -> any any (msg:"Port Scan"; content:"SYN"; priority:3)
-alert tcp any any -> any any (msg:"Port Scan"; content:"FIN"; priority:3)
+alert tcp any any -> any any (msg:"Port Scan - SYN Scan"; content:"SYN"; priority:3)
+alert tcp any any -> any any (msg:"Port Scan - FIN Scan"; content:"FIN"; priority:3)
+alert tcp any any -> any any (msg:"Port Scan - XMAS Scan"; content:"FIN,PSH,URG"; priority:3)
+alert tcp any any -> any any (msg:"Port Scan - NULL Scan"; content:"NULL"; priority:3)
+alert tcp any any -> any any (msg:"Port Scan - ACK Scan"; content:"ACK"; priority:3)
 
-# ICMP Ping Flood
-alert icmp any any -> any any (msg:"ICMP Flood"; priority:4)
+# ICMP Attacks
+alert icmp any any -> any any (msg:"ICMP Flood Attack"; priority:4)
+alert icmp any any -> any any (msg:"ICMP Ping of Death"; priority:1)
+alert icmp any any -> any any (msg:"ICMP Smurf Attack"; priority:1)
+alert icmp any any -> any any (msg:"ICMP Traceroute"; priority:5)
 
-# Malicious File Upload
-alert tcp any any -> any 80 (msg:"Malicious File Upload"; content:".exe"; priority:2)
-alert tcp any any -> any 80 (msg:"Malicious File Upload"; content:".php"; priority:2)
+# =============================================================================
+# AUTHENTICATION ATTACKS
+# =============================================================================
 
-# Directory Traversal
-alert tcp any any -> any 80 (msg:"Directory Traversal"; content:"../"; priority:2)
-alert tcp any any -> any 80 (msg:"Directory Traversal"; content:"..\\"; priority:2)
+# Brute Force Attacks
+alert tcp any any -> any 22 (msg:"SSH Brute Force Attack"; priority:3)
+alert tcp any any -> any 23 (msg:"Telnet Brute Force Attack"; priority:3)
+alert tcp any any -> any 21 (msg:"FTP Brute Force Attack"; priority:3)
+alert tcp any any -> any 25 (msg:"SMTP Brute Force Attack"; priority:3)
+alert tcp any any -> any 110 (msg:"POP3 Brute Force Attack"; priority:3)
+alert tcp any any -> any 143 (msg:"IMAP Brute Force Attack"; priority:3)
+alert tcp any any -> any 3389 (msg:"RDP Brute Force Attack"; priority:3)
+alert tcp any any -> any 5900 (msg:"VNC Brute Force Attack"; priority:3)
 
-# Command Injection
-alert tcp any any -> any 80 (msg:"Command Injection"; content:"|"; priority:1)
-alert tcp any any -> any 80 (msg:"Command Injection"; content:";"; priority:1)
-alert tcp any any -> any 80 (msg:"Command Injection"; content:"&&"; priority:1)
+# =============================================================================
+# MALWARE AND EXPLOIT DETECTION
+# =============================================================================
 
-# Brute Force Attack
-alert tcp any any -> any 22 (msg:"SSH Brute Force"; priority:3)
-alert tcp any any -> any 23 (msg:"Telnet Brute Force"; priority:3)
+# Common Exploit Patterns
+alert tcp any any -> any 80 (msg:"Buffer Overflow Attempt"; content:"AAAAAAAA"; priority:1)
+alert tcp any any -> any 80 (msg:"Format String Attack"; content:"%n%n%n%n"; priority:1)
+alert tcp any any -> any 80 (msg:"Integer Overflow Attempt"; content:"2147483647"; priority:2)
+alert tcp any any -> any 80 (msg:"Path Traversal Exploit"; content:"/etc/passwd"; priority:1)
+alert tcp any any -> any 80 (msg:"Path Traversal Exploit"; content:"/etc/shadow"; priority:1)
+alert tcp any any -> any 80 (msg:"Path Traversal Exploit"; content:"boot.ini"; priority:1)
 
-# Suspicious Network Activity
+# Web Shell Detection
+alert tcp any any -> any 80 (msg:"Web Shell - C99"; content:"c99shell"; priority:1)
+alert tcp any any -> any 80 (msg:"Web Shell - R57"; content:"r57shell"; priority:1)
+alert tcp any any -> any 80 (msg:"Web Shell - WSO"; content:"wso_shell"; priority:1)
+alert tcp any any -> any 80 (msg:"Web Shell - B374K"; content:"b374k"; priority:1)
+alert tcp any any -> any 80 (msg:"Web Shell - China Chopper"; content:"chopper"; priority:1)
+
+# =============================================================================
+# PROTOCOL-SPECIFIC ATTACKS
+# =============================================================================
+
+# HTTP Attacks
+alert tcp any any -> any 80 (msg:"HTTP Method Override"; content:"X-HTTP-Method-Override"; priority:2)
+alert tcp any any -> any 80 (msg:"HTTP Host Header Injection"; content:"Host: evil.com"; priority:2)
+alert tcp any any -> any 80 (msg:"HTTP Request Smuggling"; content:"Transfer-Encoding: chunked"; priority:1)
+alert tcp any any -> any 80 (msg:"HTTP Response Splitting"; content:"%0d%0a"; priority:2)
+
+# DNS Attacks
+alert udp any any -> any 53 (msg:"DNS Amplification Attack"; priority:2)
+alert udp any any -> any 53 (msg:"DNS Cache Poisoning"; priority:1)
+alert udp any any -> any 53 (msg:"DNS Tunneling"; priority:3)
+
+# =============================================================================
+# TRAFFIC MONITORING RULES
+# =============================================================================
+
+# General Traffic Monitoring
 alert tcp any any -> any 443 (msg:"HTTPS Traffic"; priority:5)
 alert udp any any -> any 53 (msg:"DNS Query"; priority:5)
+alert tcp any any -> any 80 (msg:"HTTP Traffic"; priority:5)
+alert tcp any any -> any 21 (msg:"FTP Traffic"; priority:5)
+alert tcp any any -> any 25 (msg:"SMTP Traffic"; priority:5)
+alert tcp any any -> any 110 (msg:"POP3 Traffic"; priority:5)
+alert tcp any any -> any 143 (msg:"IMAP Traffic"; priority:5)
+alert tcp any any -> any 993 (msg:"IMAPS Traffic"; priority:5)
+alert tcp any any -> any 995 (msg:"POP3S Traffic"; priority:5)
+alert tcp any any -> any 587 (msg:"SMTP Submission"; priority:5)
+alert tcp any any -> any 465 (msg:"SMTPS Traffic"; priority:5)
 
-# Log all traffic for testing
+# =============================================================================
+# COMPREHENSIVE LOGGING
+# =============================================================================
+
+# Log all IP traffic for comprehensive monitoring
 log ip any any -> any any (msg:"All IP Traffic"; priority:5)
 
+# Log all TCP traffic
+log tcp any any -> any any (msg:"All TCP Traffic"; priority:5)
+
+# Log all UDP traffic
+log udp any any -> any any (msg:"All UDP Traffic"; priority:5)
+
+# Log all ICMP traffic
+log icmp any any -> any any (msg:"All ICMP Traffic"; priority:5)
+
+# =============================================================================
+# FIREWALL AND SYSTEM MONITORING RULES
+# =============================================================================
+
+# Firewall Management Detection
+alert tcp any any -> any 22 (msg:"Firewall Management via SSH"; content:"ufw"; priority:2)
+alert tcp any any -> any 22 (msg:"Firewall Management via SSH"; content:"iptables"; priority:2)
+alert tcp any any -> any 22 (msg:"Firewall Management via SSH"; content:"firewall-cmd"; priority:2)
+
+# System Administration Commands
+alert tcp any any -> any 22 (msg:"System Admin Command"; content:"chmod 777"; priority:1)
+alert tcp any any -> any 22 (msg:"System Admin Command"; content:"rm -rf"; priority:1)
+alert tcp any any -> any 22 (msg:"System Admin Command"; content:"dd if=/dev/zero"; priority:1)
+
+# Network Scanning Detection
+alert tcp any any -> any any (msg:"Network Scanner"; content:"nmap"; priority:3)
+alert tcp any any -> any any (msg:"Network Scanner"; content:"masscan"; priority:3)
+alert tcp any any -> any any (msg:"Network Scanner"; content:"zmap"; priority:3)
+
+# Privilege Escalation Attempts
+alert tcp any any -> any 22 (msg:"Privilege Escalation"; content:"sudo su"; priority:2)
+alert tcp any any -> any 22 (msg:"Privilege Escalation"; content:"su -"; priority:2)
+alert tcp any any -> any 22 (msg:"Privilege Escalation"; content:"sudo -i"; priority:2)
+
+# File System Manipulation
+alert tcp any any -> any 22 (msg:"File System Manipulation"; content:"mkfs"; priority:1)
+alert tcp any any -> any 22 (msg:"File System Manipulation"; content:"format"; priority:1)
+alert tcp any any -> any 22 (msg:"File System Manipulation"; content:"fdisk"; priority:1)
+alert tcp any any -> any 80 (msg:"Detect SQL injection attempts"; content:"test"; priority:1)
 alert tcp any any -> any 80 (msg:"Monitor for XSS attacks"; content:"test"; priority:1)
-alert tcp any any -> any 80 (msg:"Monitor directory traversal attempts"; content:"test"; priority:1)
+alert tcp any any -> any 80 (msg:"Detect SQL injection attempts"; content:"test"; priority:1)

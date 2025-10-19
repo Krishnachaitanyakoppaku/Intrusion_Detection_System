@@ -377,7 +377,7 @@
             
             <div style="margin-bottom: 20px;">
                 <button class="btn btn-info" onclick="loadRules()">🔄 Refresh Current Rules</button>
-                <button class="btn btn-success" onclick="showBuiltInRules()">📚 Show Built-in Rules</button>
+                <button class="btn btn-success" onclick="showBuiltInRules()">📚 Show Sample Rules</button>
             </div>
             
             <div class="rules-list" id="rules-list">
@@ -396,6 +396,25 @@
                 </p>
             </div>
             <button class="btn" onclick="refreshAlerts()" style="margin-top: 15px;">🔄 Refresh Alerts</button>
+        </div>
+
+        <!-- Firewall Monitoring -->
+        <div class="card full-width">
+            <h2>🔥 Firewall & System Monitoring</h2>
+            <p style="margin-bottom: 20px; color: #666;">
+                Real-time monitoring of firewall changes, system administration commands, and suspicious processes.
+            </p>
+            
+            <div style="margin-bottom: 20px;">
+                <button class="btn btn-info" onclick="refreshFirewallAlerts()">🔄 Refresh Firewall Alerts</button>
+                <button class="btn btn-warning" onclick="testFirewallMonitoring()">🧪 Test Firewall Detection</button>
+            </div>
+            
+            <div class="alerts-container" id="firewall-alerts-container">
+                <p style="text-align: center; color: #666; padding: 20px;">
+                    Firewall monitoring is active. Suspicious activities will appear here...
+                </p>
+            </div>
         </div>
             </div>
             
@@ -495,9 +514,12 @@
         // Load rules from server
         async function loadRules() {
             try {
-                const response = await fetch('/api/rules');
+                // Add cache-busting parameter to force fresh load
+                const timestamp = new Date().getTime();
+                const response = await fetch(`/api/rules?t=${timestamp}`);
                 const data = await response.json();
                 currentRules = data.rules;
+                console.log(`Loaded ${currentRules.length} rules from server`);
                 displayRules();
             } catch (error) {
                 console.error('Error loading rules:', error);
@@ -508,6 +530,7 @@
         // Display rules in the interface
         function displayRules() {
             const rulesList = document.getElementById('rules-list');
+            console.log(`Displaying ${currentRules.length} rules`);
             
             if (currentRules.length === 0) {
                 rulesList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No rules found. Create some rules to get started!</p>';
@@ -523,6 +546,8 @@
                     </div>
                 </div>
             `).join('');
+            
+            console.log(`Successfully displayed ${currentRules.length} rules`);
         }
 
         // Edit rule
@@ -856,12 +881,56 @@
             }
         }
 
+        // Refresh firewall alerts
+        async function refreshFirewallAlerts() {
+            try {
+                const response = await fetch('/api/get_firewall_alerts');
+                const data = await response.json();
+                
+                const firewallContainer = document.getElementById('firewall-alerts-container');
+                
+                if (data.firewall_alerts && data.firewall_alerts.length > 0) {
+                    firewallContainer.innerHTML = data.firewall_alerts.map(alert => {
+                        let alertClass = 'alert-item medium';
+                        if (alert.includes('CRITICAL') || alert.includes('Priority 1')) {
+                            alertClass = 'alert-item high';
+                        } else if (alert.includes('Priority 2')) {
+                            alertClass = 'alert-item medium';
+                        } else if (alert.includes('Priority 3')) {
+                            alertClass = 'alert-item low';
+                        }
+                        return `<div class="${alertClass}">${alert}</div>`;
+                    }).join('');
+                } else {
+                    firewallContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No firewall alerts yet. Firewall monitoring is active...</p>';
+                }
+            } catch (error) {
+                console.error('Error fetching firewall alerts:', error);
+                document.getElementById('firewall-alerts-container').innerHTML = '<p style="text-align: center; color: #dc3545; padding: 20px;">Error loading firewall alerts</p>';
+            }
+        }
+
+        // Test firewall monitoring
+        function testFirewallMonitoring() {
+            alert('🧪 Firewall Monitoring Test\n\n' +
+                  'To test firewall detection, try running these commands in a terminal:\n\n' +
+                  '• sudo ufw reset\n' +
+                  '• sudo iptables -F\n' +
+                  '• chmod 777 /etc/passwd\n' +
+                  '• nmap -sS 192.168.1.0/24\n\n' +
+                  'The IDS will detect and log these activities!');
+        }
+
         // Initialize the interface
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('IDS DSL Engine Web Interface loaded with Gemini AI integration');
-            // Show built-in rules by default and start refreshing alerts
-            showBuiltInRules();
+            console.log('IDS DSL Engine Web Interface loaded with Gemini AI integration and Firewall Monitoring');
+            // Load actual rules from server and start refreshing alerts
+            loadRules();
             refreshAlerts();
+            refreshFirewallAlerts();
+            
+            // Start periodic firewall monitoring refresh
+            setInterval(refreshFirewallAlerts, 5000); // Refresh every 5 seconds
         });
 
         // Close modal when clicking outside

@@ -31,6 +31,8 @@ Open your browser and go to: `http://localhost:8080`
 
 ### 🚨 **Real-Time Monitoring**
 - **Live Alerts**: Real-time security notifications
+- **Firewall Monitoring**: Detect firewall rule changes and system administration
+- **Process Monitoring**: Track suspicious system processes and commands
 - **Network Interface Selection**: Monitor different network interfaces
 - **Alert Severity Levels**: Critical, High, Medium, Low, Info
 - **Historical Logs**: View past security events
@@ -54,6 +56,7 @@ Open your browser and go to: `http://localhost:8080`
 - libpcap (packet capture library)
 - curl (for API requests)
 - make, bison, flex (build tools)
+- psutil (for process monitoring)
 
 ### **Network Requirements:**
 - Root/sudo privileges for packet capture
@@ -159,6 +162,10 @@ Rules are stored in `rules/local.rules`. You can:
 - Directory traversal attempts
 - Command injection
 - ICMP floods
+- Firewall rule tampering
+- System administration abuse
+- Process-based attacks
+- Privilege escalation attempts
 
 ### **Alert Levels:**
 - **Critical (Priority 1)**: Immediate attention required
@@ -209,14 +216,18 @@ Intrusion_Detection_System/
 ├── bin/
 │   └── simple_ids             # Compiled IDS engine
 ├── rules/
-│   └── local.rules            # Security rules file
+│   └── local.rules            # Security rules file (80+ rules)
 ├── logs/
-│   └── alerts.log             # Alert logs
+│   ├── alerts.log             # Alert logs
+│   └── firewall_monitor.log  # Firewall monitoring logs
 ├── src/                       # Source code
 ├── include/                   # Header files
 ├── build/                     # Build artifacts
 ├── install_complete.sh        # Installation script
 ├── simple_ids.c               # Simple IDS engine source
+├── requirements.txt           # Python dependencies
+├── start_ids_system.bat       # Windows startup script
+├── test_firewall_monitoring.py # Firewall monitoring test
 └── README.md                  # This file
 ```
 

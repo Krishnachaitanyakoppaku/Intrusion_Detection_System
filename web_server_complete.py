@@ -11,6 +11,8 @@ import sys
 import requests
 import urllib.parse
 import re
+import psutil
+import logging
 
 # Gemini API integration
 GEMINI_API_KEY = "AIzaSyCK3N6q-3kxwLX0p-kqiEJmxPdxlxN-nZg"
@@ -18,6 +20,96 @@ GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemin
 
 # Rules file path
 RULES_FILE = "rules/local.rules"
+
+# Firewall monitoring class
+class FirewallMonitor:
+    def __init__(self):
+        self.firewall_rules_file = "logs/firewall_monitor.log"
+        self.suspicious_commands = [
+            'ufw reset', 'ufw disable', 'ufw --force reset',
+            'iptables -F', 'iptables --flush', 'iptables -X',
+            'firewall-cmd --reload', 'systemctl stop firewalld',
+            'chmod 777', 'chmod 666', 'chmod 000',
+            'rm -rf /', 'rm -rf /*', 'dd if=/dev/zero',
+            'mkfs.ext4', 'format c:', 'del /f /s /q',
+            'netstat -an', 'ss -tuln', 'lsof -i',
+            'nmap', 'masscan', 'zmap'
+        ]
+        self.admin_users = ['root', 'admin', 'administrator']
+        
+    def log_firewall_event(self, event_type, details):
+        """Log firewall-related events"""
+        timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+        log_entry = f"[{timestamp}] FIREWALL ALERT: {event_type} - {details}\n"
+        
+        try:
+            with open(self.firewall_rules_file, 'a') as f:
+                f.write(log_entry)
+        except Exception as e:
+            print(f"Error logging firewall event: {e}")
+    
+    def check_processes(self):
+        """Monitor running processes for suspicious activities"""
+        try:
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'username']):
+                try:
+                    cmdline = ' '.join(proc.info['cmdline']) if proc.info['cmdline'] else ''
+                    username = proc.info['username']
+                    
+                    # Check for suspicious commands
+                    for suspicious_cmd in self.suspicious_commands:
+                        if suspicious_cmd.lower() in cmdline.lower():
+                            self.log_firewall_event(
+                                "SUSPICIOUS PROCESS",
+                                f"User: {username}, Command: {cmdline}, PID: {proc.info['pid']}"
+                            )
+                            
+                    # Check for admin users running dangerous commands
+                    if username in self.admin_users:
+                        dangerous_patterns = ['ufw', 'iptables', 'firewall', 'chmod', 'rm -rf']
+                        for pattern in dangerous_patterns:
+                            if pattern in cmdline.lower():
+                                self.log_firewall_event(
+                                    "ADMIN DANGEROUS COMMAND",
+                                    f"Admin user {username} executed: {cmdline}"
+                                )
+                                
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+                    
+        except Exception as e:
+            print(f"Error monitoring processes: {e}")
+    
+    def check_network_interfaces(self):
+        """Monitor network interface changes"""
+        try:
+            interfaces = psutil.net_if_addrs()
+            for interface, addresses in interfaces.items():
+                for addr in addresses:
+                    if addr.family == 2:  # IPv4
+                        # Log interface information
+                        if interface not in ['lo', 'loopback']:
+                            self.log_firewall_event(
+                                "NETWORK INTERFACE",
+                                f"Interface: {interface}, IP: {addr.address}"
+                            )
+        except Exception as e:
+            print(f"Error monitoring network interfaces: {e}")
+    
+    def start_monitoring(self):
+        """Start continuous monitoring"""
+        def monitor_loop():
+            while True:
+                self.check_processes()
+                self.check_network_interfaces()
+                time.sleep(10)  # Check every 10 seconds
+        
+        monitor_thread = threading.Thread(target=monitor_loop, daemon=True)
+        monitor_thread.start()
+        print("Firewall monitoring started")
+
+# Initialize firewall monitor
+firewall_monitor = FirewallMonitor()
 
 class IDSHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -29,6 +121,12 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
         elif self.path == '/api/rules':
             self.get_rules()
             return
+        elif self.path == '/api/get_alerts':
+            self.get_alerts()
+            return
+        elif self.path == '/api/get_firewall_alerts':
+            self.get_firewall_alerts()
+            return
         return super().do_GET()
     
     def do_POST(self):
@@ -38,8 +136,6 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
             self.stop_ids()
         elif self.path == '/api/convert_rule':
             self.convert_rule_with_gemini()
-        elif self.path == '/api/get_alerts':
-            self.get_alerts()
         elif self.path == '/api/add_rule':
             self.add_rule()
         elif self.path == '/api/delete_rule':
@@ -151,14 +247,16 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
             if os.path.exists(RULES_FILE):
                 with open(RULES_FILE, 'r') as f:
                     lines = f.readlines()
-                    for i, line in enumerate(lines):
+                    rule_count = 0
+                    for line in lines:
                         line = line.strip()
                         if line and not line.startswith('#'):
                             rules.append({
-                                'id': i,
+                                'id': rule_count,
                                 'rule': line,
                                 'enabled': True
                             })
+                            rule_count += 1
             
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -278,17 +376,42 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 # Generate sample alerts for demonstration
                 alerts = [
-                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 🚨 ALERT: SQL Injection Attempt\n",
-                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 🚨 ALERT: XSS Attack Detected\n",
-                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 🚨 ALERT: Port Scan Activity\n",
-                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 🚨 ALERT: Malicious File Upload\n",
-                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 🚨 ALERT: Directory Traversal Attempt\n"
+                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] ALERT: SQL Injection Attempt\n",
+                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] ALERT: XSS Attack Detected\n",
+                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] ALERT: Port Scan Activity\n",
+                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] ALERT: Malicious File Upload\n",
+                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] ALERT: Directory Traversal Attempt\n"
                 ]
             
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({'alerts': alerts}).encode())
+        except Exception as e:
+            self.send_error(500, str(e))
+    
+    def get_firewall_alerts(self):
+        try:
+            firewall_alerts = []
+            
+            # Check if firewall monitor log exists
+            if os.path.exists('logs/firewall_monitor.log'):
+                with open('logs/firewall_monitor.log', 'r') as f:
+                    firewall_alerts = f.readlines()[-20:]  # Last 20 firewall alerts
+            else:
+                # Generate sample firewall alerts for demonstration
+                firewall_alerts = [
+                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] FIREWALL ALERT: SUSPICIOUS PROCESS - User: root, Command: sudo ufw reset, PID: 1234\n",
+                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] FIREWALL ALERT: ADMIN DANGEROUS COMMAND - Admin user root executed: iptables -F\n",
+                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] FIREWALL ALERT: SUSPICIOUS PROCESS - User: admin, Command: chmod 777 /etc/passwd, PID: 5678\n",
+                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] FIREWALL ALERT: NETWORK INTERFACE - Interface: eth0, IP: 192.168.1.100\n",
+                    f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] FIREWALL ALERT: SUSPICIOUS PROCESS - User: user, Command: nmap -sS 192.168.1.0/24, PID: 9012\n"
+                ]
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'firewall_alerts': firewall_alerts}).encode())
         except Exception as e:
             self.send_error(500, str(e))
 
@@ -301,17 +424,21 @@ signal.signal(signal.SIGINT, signal_handler)
 if __name__ == '__main__':
     PORT = 8080
     
-    # Change to the project directory
-    os.chdir('/mnt/c/Users/Charan/Documents/sem-5/cd project/Intrusion_Detection_System')
+    # Get the directory where this script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(script_dir)
     
     # Create logs directory if it doesn't exist
     os.makedirs('logs', exist_ok=True)
     
+    # Start firewall monitoring
+    firewall_monitor.start_monitoring()
+    
     with socketserver.TCPServer(("", PORT), IDSHandler) as httpd:
-        print(f"🛡️ IDS DSL Engine - Web Server")
-        print(f"🌐 Web Interface: http://localhost:{PORT}")
-        print(f"🤖 Gemini AI Integration: ENABLED")
-        print(f"📋 Rule Management: ENABLED")
-        print(f"📡 Monitoring: Ready")
+        print(f"IDS DSL Engine - Web Server")
+        print(f"Web Interface: http://localhost:{PORT}")
+        print(f"Gemini AI Integration: ENABLED")
+        print(f"Rule Management: ENABLED")
+        print(f"Monitoring: Ready")
         print("Press Ctrl+C to stop")
         httpd.serve_forever()
