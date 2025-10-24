@@ -218,7 +218,7 @@
             padding: 15px;
             border-radius: 8px;
             border: 1px solid #dee2e6;
-            max-height: 400px;
+            max-height: 800px;
             overflow-y: auto;
         }
         .rule-item {
@@ -258,6 +258,9 @@
             font-size: 14px;
             margin-bottom: 10px;
             word-break: break-all;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            max-width: 100%;
         }
         .rule-actions {
             display: flex;
@@ -378,6 +381,8 @@
             <div style="margin-bottom: 20px;">
                 <button class="btn btn-info" onclick="loadRules()">🔄 Refresh Current Rules</button>
                 <button class="btn btn-success" onclick="showBuiltInRules()">📚 Show Sample Rules</button>
+                <button class="btn btn-warning" onclick="testRulesAPI()">🧪 Test API</button>
+                <button class="btn btn-secondary" onclick="showFirst5Rules()">🔍 Show First 5 Rules</button>
             </div>
             
             <div class="rules-list" id="rules-list">
@@ -462,6 +467,10 @@
                     },
                     body: JSON.stringify({ text: naturalLanguage })
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
                 const data = await response.json();
                 dslRuleElement.textContent = data.dsl_rule;
@@ -470,11 +479,14 @@
                 dslRuleElement.style.border = '2px solid #28a745';
                 dslRuleElement.style.backgroundColor = '#d4edda';
                 
+                console.log('Rule converted successfully:', data.dsl_rule);
+                
             } catch (error) {
                 console.error('Error converting rule:', error);
                 dslRuleElement.textContent = '❌ Error: Could not connect to Gemini AI. Please try again.';
                 dslRuleElement.style.border = '2px solid #dc3545';
                 dslRuleElement.style.backgroundColor = '#f8d7da';
+                showErrorMessage('Failed to convert rule. Please check your connection and try again.');
             }
         }
 
@@ -494,15 +506,23 @@
                     },
                     body: JSON.stringify({ rule: dslRule })
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
                 const data = await response.json();
                 if (data.status === 'added') {
                     alert('✅ Rule added successfully to the engine!');
-                    loadRules(); // Refresh rules list
+                    loadRules().catch(error => {
+                        console.error('Error refreshing rules after adding:', error);
+                    });
+                } else {
+                    throw new Error(data.message || 'Unknown error occurred');
                 }
             } catch (error) {
                 console.error('Error adding rule:', error);
-                alert('❌ Error adding rule. Please try again.');
+                showErrorMessage('Failed to add rule. Please check your connection and try again.');
             }
             
             // Reset the display
@@ -517,13 +537,19 @@
                 // Add cache-busting parameter to force fresh load
                 const timestamp = new Date().getTime();
                 const response = await fetch(`/api/rules?t=${timestamp}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
-                currentRules = data.rules;
+                currentRules = data.rules || [];
                 console.log(`Loaded ${currentRules.length} rules from server`);
                 displayRules();
             } catch (error) {
                 console.error('Error loading rules:', error);
-                document.getElementById('rules-list').innerHTML = '<p style="text-align: center; color: #dc3545; padding: 20px;">Error loading rules</p>';
+                document.getElementById('rules-list').innerHTML = '<p style="text-align: center; color: #dc3545; padding: 20px;">Error loading rules. Please check your connection and try again.</p>';
+                showErrorMessage('Failed to load rules. Please check your connection and try again.');
             }
         }
 
@@ -624,179 +650,205 @@
         }
 
         // Show built-in rules with descriptions
-        function showBuiltInRules() {
-            const builtInRules = [
-                {
-                    id: 'sql_injection_1',
-                    rule: 'alert tcp any any -> any 80 (msg:"SQL Injection Attempt"; content:"\' OR 1=1"; priority:1)',
-                    description: 'Detects classic SQL injection attempts using the "OR 1=1" pattern',
-                    category: 'Web Application Security',
-                    severity: 'Critical'
-                },
-                {
-                    id: 'sql_injection_2',
-                    rule: 'alert tcp any any -> any 80 (msg:"SQL Injection Attempt"; content:"UNION SELECT"; priority:1)',
-                    description: 'Detects SQL injection attempts using UNION SELECT statements',
-                    category: 'Web Application Security',
-                    severity: 'Critical'
-                },
-                {
-                    id: 'sql_injection_3',
-                    rule: 'alert tcp any any -> any 80 (msg:"SQL Injection Attempt"; content:"DROP TABLE"; priority:1)',
-                    description: 'Detects malicious SQL commands that attempt to drop database tables',
-                    category: 'Web Application Security',
-                    severity: 'Critical'
-                },
-                {
-                    id: 'xss_1',
-                    rule: 'alert tcp any any -> any 80 (msg:"XSS Attack"; content:"<script>"; priority:2)',
-                    description: 'Detects Cross-Site Scripting (XSS) attacks using script tags',
-                    category: 'Web Application Security',
-                    severity: 'High'
-                },
-                {
-                    id: 'xss_2',
-                    rule: 'alert tcp any any -> any 80 (msg:"XSS Attack"; content:"javascript:"; priority:2)',
-                    description: 'Detects XSS attacks using javascript: protocol in URLs',
-                    category: 'Web Application Security',
-                    severity: 'High'
-                },
-                {
-                    id: 'xss_3',
-                    rule: 'alert tcp any any -> any 80 (msg:"XSS Attack"; content:"onload="; priority:2)',
-                    description: 'Detects XSS attacks using onload event handlers',
-                    category: 'Web Application Security',
-                    severity: 'High'
-                },
-                {
-                    id: 'port_scan_1',
-                    rule: 'alert tcp any any -> any any (msg:"Port Scan"; content:"SYN"; priority:3)',
-                    description: 'Detects port scanning activities using SYN packets',
-                    category: 'Network Reconnaissance',
-                    severity: 'Medium'
-                },
-                {
-                    id: 'port_scan_2',
-                    rule: 'alert tcp any any -> any any (msg:"Port Scan"; content:"FIN"; priority:3)',
-                    description: 'Detects port scanning using FIN packets (stealth scanning)',
-                    category: 'Network Reconnaissance',
-                    severity: 'Medium'
-                },
-                {
-                    id: 'icmp_flood',
-                    rule: 'alert icmp any any -> any any (msg:"ICMP Flood"; priority:4)',
-                    description: 'Detects ICMP flood attacks (ping floods)',
-                    category: 'Denial of Service',
-                    severity: 'Low'
-                },
-                {
-                    id: 'malicious_upload_1',
-                    rule: 'alert tcp any any -> any 80 (msg:"Malicious File Upload"; content:".exe"; priority:2)',
-                    description: 'Detects attempts to upload executable files (.exe)',
-                    category: 'Malware Detection',
-                    severity: 'High'
-                },
-                {
-                    id: 'malicious_upload_2',
-                    rule: 'alert tcp any any -> any 80 (msg:"Malicious File Upload"; content:".php"; priority:2)',
-                    description: 'Detects attempts to upload PHP files (potential web shells)',
-                    category: 'Malware Detection',
-                    severity: 'High'
-                },
-                {
-                    id: 'directory_traversal_1',
-                    rule: 'alert tcp any any -> any 80 (msg:"Directory Traversal"; content:"../"; priority:2)',
-                    description: 'Detects directory traversal attacks using "../" patterns',
-                    category: 'Web Application Security',
-                    severity: 'High'
-                },
-                {
-                    id: 'directory_traversal_2',
-                    rule: 'alert tcp any any -> any 80 (msg:"Directory Traversal"; content:"..\\\\"; priority:2)',
-                    description: 'Detects Windows-style directory traversal using "..\\" patterns',
-                    category: 'Web Application Security',
-                    severity: 'High'
-                },
-                {
-                    id: 'command_injection_1',
-                    rule: 'alert tcp any any -> any 80 (msg:"Command Injection"; content:"|"; priority:1)',
-                    description: 'Detects command injection using pipe character (|)',
-                    category: 'Web Application Security',
-                    severity: 'Critical'
-                },
-                {
-                    id: 'command_injection_2',
-                    rule: 'alert tcp any any -> any 80 (msg:"Command Injection"; content:";"; priority:1)',
-                    description: 'Detects command injection using semicolon (;)',
-                    category: 'Web Application Security',
-                    severity: 'Critical'
-                },
-                {
-                    id: 'command_injection_3',
-                    rule: 'alert tcp any any -> any 80 (msg:"Command Injection"; content:"&&"; priority:1)',
-                    description: 'Detects command injection using logical AND (&&)',
-                    category: 'Web Application Security',
-                    severity: 'Critical'
-                },
-                {
-                    id: 'ssh_brute_force',
-                    rule: 'alert tcp any any -> any 22 (msg:"SSH Brute Force"; priority:3)',
-                    description: 'Detects brute force attacks on SSH service (port 22)',
-                    category: 'Authentication Attacks',
-                    severity: 'Medium'
-                },
-                {
-                    id: 'telnet_brute_force',
-                    rule: 'alert tcp any any -> any 23 (msg:"Telnet Brute Force"; priority:3)',
-                    description: 'Detects brute force attacks on Telnet service (port 23)',
-                    category: 'Authentication Attacks',
-                    severity: 'Medium'
-                },
-                {
-                    id: 'https_traffic',
-                    rule: 'alert tcp any any -> any 443 (msg:"HTTPS Traffic"; priority:5)',
-                    description: 'Monitors HTTPS traffic for logging purposes',
-                    category: 'Traffic Monitoring',
-                    severity: 'Info'
-                },
-                {
-                    id: 'dns_query',
-                    rule: 'alert udp any any -> any 53 (msg:"DNS Query"; priority:5)',
-                    description: 'Monitors DNS queries for logging purposes',
-                    category: 'Traffic Monitoring',
-                    severity: 'Info'
-                },
-                {
-                    id: 'all_ip_traffic',
-                    rule: 'log ip any any -> any any (msg:"All IP Traffic"; priority:5)',
-                    description: 'Logs all IP traffic for comprehensive monitoring',
-                    category: 'Traffic Monitoring',
-                    severity: 'Info'
-                }
-            ];
-
-            const rulesList = document.getElementById('rules-list');
+        async function showBuiltInRules() {
+            console.log('showBuiltInRules() called');
             
-            rulesList.innerHTML = builtInRules.map(rule => `
+            // Show loading state
+            const rulesList = document.getElementById('rules-list');
+            if (!rulesList) {
+                console.error('rules-list element not found');
+                return;
+            }
+            
+            rulesList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Loading rules...</p>';
+            
+            try {
+                // Load all rules from the server
+                const timestamp = new Date().getTime();
+                console.log(`Fetching rules with timestamp: ${timestamp}`);
+                
+                const response = await fetch(`/api/rules?t=${timestamp}`);
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Received data:', data);
+                
+                const allRules = data.rules || [];
+                console.log(`Found ${allRules.length} rules`);
+                
+                if (allRules.length === 0) {
+                    rulesList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No built-in rules found.</p>';
+                    return;
+                }
+                
+                // Helper function to determine category and severity from rule content
+                function getRuleInfo(ruleText) {
+                    let category = 'Security Rule';
+                    let severity = 'Medium';
+                    
+                    const rule = ruleText.toLowerCase();
+                    
+                    if (rule.includes('sql') || rule.includes('xss') || rule.includes('command injection')) {
+                        category = 'Web Application Security';
+                        severity = rule.includes('priority:1') ? 'Critical' : 'High';
+                    } else if (rule.includes('port scan') || rule.includes('syn') || rule.includes('fin')) {
+                        category = 'Network Reconnaissance';
+                        severity = 'Medium';
+                    } else if (rule.includes('icmp') || rule.includes('flood')) {
+                        category = 'Denial of Service';
+                        severity = 'Low';
+                    } else if (rule.includes('malicious') || rule.includes('.exe') || rule.includes('.php')) {
+                        category = 'Malware Detection';
+                        severity = 'High';
+                    } else if (rule.includes('ssh') || rule.includes('telnet') || rule.includes('brute force')) {
+                        category = 'Authentication Attacks';
+                        severity = 'Medium';
+                    } else if (rule.includes('https') || rule.includes('dns') || rule.includes('traffic')) {
+                        category = 'Traffic Monitoring';
+                        severity = 'Info';
+                    } else if (rule.includes('firewall') || rule.includes('iptables') || rule.includes('ufw')) {
+                        category = 'Firewall Management';
+                        severity = 'High';
+                    } else if (rule.includes('directory traversal') || rule.includes('../')) {
+                        category = 'Web Application Security';
+                        severity = 'High';
+                    }
+                    
+                    return { category, severity };
+                }
+                
+                // Generate HTML for all rules
+                let html = '';
+                allRules.forEach((rule, index) => {
+                    const ruleInfo = getRuleInfo(rule.rule);
+                    const severityColor = ruleInfo.severity === 'Critical' ? '#dc3545' : 
+                                        ruleInfo.severity === 'High' ? '#fd7e14' : 
+                                        ruleInfo.severity === 'Medium' ? '#ffc107' : 
+                                        ruleInfo.severity === 'Low' ? '#28a745' : '#6c757d';
+                    
+                    html += `
                 <div class="rule-item">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                         <div>
-                            <span class="rule-category">${rule.category}</span>
-                            <span class="rule-severity" style="margin-left: 10px; 
-                                background-color: ${rule.severity === 'Critical' ? '#dc3545' : 
-                                                 rule.severity === 'High' ? '#fd7e14' : 
-                                                 rule.severity === 'Medium' ? '#ffc107' : 
-                                                 rule.severity === 'Low' ? '#28a745' : '#6c757d'};">
-                                ${rule.severity}
+                                    <span class="rule-category">${ruleInfo.category}</span>
+                                    <span class="rule-severity" style="margin-left: 10px; background-color: ${severityColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">
+                                        ${ruleInfo.severity}
                             </span>
                         </div>
                     </div>
                     <div class="rule-text">${rule.rule}</div>
                     <div class="rule-description">
-                        <strong>What it does:</strong> ${rule.description}
+                                <strong>Rule ID:</strong> ${rule.id} | <strong>Status:</strong> ${rule.enabled ? 'Enabled' : 'Disabled'}
                     </div>
                 </div>
-            `).join('');
+                    `;
+                });
+                
+                rulesList.innerHTML = html;
+                console.log(`Successfully displayed ${allRules.length} built-in rules`);
+                console.log('Generated HTML length:', html.length);
+                console.log('First rule HTML:', html.substring(0, 500));
+                
+            } catch (error) {
+                console.error('Error loading built-in rules:', error);
+                rulesList.innerHTML = `<p style="text-align: center; color: #dc3545; padding: 20px;">Error loading built-in rules: ${error.message}</p>`;
+            }
+        }
+
+        // Test function to debug API issues
+        async function testRulesAPI() {
+            console.log('Testing Rules API...');
+            const rulesList = document.getElementById('rules-list');
+            
+            try {
+                const response = await fetch('/api/rules');
+                console.log('API Response:', response);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('API Data:', data);
+                    
+                    rulesList.innerHTML = `
+                        <div style="background: #d4edda; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                            <h4>✅ API Test Successful!</h4>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Rules Count:</strong> ${data.rules ? data.rules.length : 0}</p>
+                            <p><strong>First Rule:</strong> ${data.rules && data.rules[0] ? data.rules[0].rule.substring(0, 100) + '...' : 'None'}</p>
+                        </div>
+                    `;
+                } else {
+                    rulesList.innerHTML = `
+                        <div style="background: #f8d7da; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                            <h4>❌ API Test Failed!</h4>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Error:</strong> ${response.statusText}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('API Test Error:', error);
+                rulesList.innerHTML = `
+                    <div style="background: #f8d7da; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                        <h4>❌ API Test Error!</h4>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Show only first 5 rules for debugging
+        async function showFirst5Rules() {
+            console.log('showFirst5Rules() called');
+            
+            const rulesList = document.getElementById('rules-list');
+            if (!rulesList) {
+                console.error('rules-list element not found');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/rules');
+                const data = await response.json();
+                const allRules = data.rules || [];
+                
+                console.log(`Found ${allRules.length} total rules, showing first 5`);
+                
+                if (allRules.length === 0) {
+                    rulesList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No rules found.</p>';
+                    return;
+                }
+                
+                // Show only first 5 rules
+                const first5Rules = allRules.slice(0, 5);
+                
+                let html = '<h4>First 5 Rules (Debug Mode):</h4>';
+                first5Rules.forEach((rule, index) => {
+                    html += `
+                        <div class="rule-item" style="border: 2px solid #007bff; margin: 10px 0;">
+                            <div style="background: #e7f3ff; padding: 10px; margin-bottom: 10px;">
+                                <strong>Rule ${index + 1} (ID: ${rule.id})</strong>
+                            </div>
+                            <div class="rule-text" style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd;">
+                                ${rule.rule}
+                            </div>
+                            <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                                Status: ${rule.enabled ? 'Enabled' : 'Disabled'} | Length: ${rule.rule.length} characters
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                rulesList.innerHTML = html;
+                console.log('First 5 rules displayed successfully');
+                
+            } catch (error) {
+                console.error('Error loading first 5 rules:', error);
+                rulesList.innerHTML = `<p style="text-align: center; color: #dc3545; padding: 20px;">Error: ${error.message}</p>`;
+            }
         }
 
         // Start the IDS engine
@@ -924,14 +976,137 @@
         // Initialize the interface
         document.addEventListener('DOMContentLoaded', function() {
             console.log('IDS DSL Engine Web Interface loaded with Gemini AI integration and Firewall Monitoring');
+            
+            // Initialize with error handling
+            try {
             // Load actual rules from server and start refreshing alerts
-            loadRules();
-            refreshAlerts();
-            refreshFirewallAlerts();
+                loadRules().catch(error => {
+                    console.error('Error loading rules on startup:', error);
+                    showErrorMessage('Failed to load rules on startup. Please refresh the page.');
+                });
+                
+                refreshAlerts().catch(error => {
+                    console.error('Error refreshing alerts on startup:', error);
+                });
+                
+                refreshFirewallAlerts().catch(error => {
+                    console.error('Error refreshing firewall alerts on startup:', error);
+                });
             
             // Start periodic firewall monitoring refresh
-            setInterval(refreshFirewallAlerts, 5000); // Refresh every 5 seconds
+                setInterval(() => {
+                    refreshFirewallAlerts().catch(error => {
+                        console.error('Error in periodic firewall refresh:', error);
+                    });
+                }, 5000); // Refresh every 5 seconds
+                
+                console.log('Web interface initialized successfully');
+            } catch (error) {
+                console.error('Critical error during initialization:', error);
+                showErrorMessage('Critical error during initialization. Please refresh the page.');
+            }
         });
+        
+        // Global error handler
+        window.addEventListener('error', function(event) {
+            console.error('Global JavaScript error:', event.error);
+            showErrorMessage('A JavaScript error occurred. Check console for details.');
+        });
+        
+        // Unhandled promise rejection handler
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            showErrorMessage('An unhandled promise rejection occurred. Check console for details.');
+        });
+        
+        // Browser compatibility and feature detection
+        function checkBrowserCompatibility() {
+            const issues = [];
+            
+            // Check for required features
+            if (!window.fetch) {
+                issues.push('Fetch API not supported. Please use a modern browser.');
+            }
+            
+            if (!window.Promise) {
+                issues.push('Promises not supported. Please use a modern browser.');
+            }
+            
+            if (!window.console || !window.console.log) {
+                issues.push('Console not available. Some features may not work properly.');
+            }
+            
+            // Check for localStorage
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+            } catch (e) {
+                issues.push('Local storage not available. Some features may not work.');
+            }
+            
+            if (issues.length > 0) {
+                console.warn('Browser compatibility issues detected:', issues);
+                showErrorMessage('Browser compatibility issues detected. Some features may not work properly.');
+            } else {
+                console.log('Browser compatibility check passed');
+            }
+        }
+        
+        // Network connectivity check
+        async function checkNetworkConnectivity() {
+            try {
+                const response = await fetch('/api/rules', { 
+                    method: 'HEAD',
+                    cache: 'no-cache'
+                });
+                if (!response.ok) {
+                    throw new Error(`Server responded with ${response.status}`);
+                }
+                console.log('Network connectivity check passed');
+                return true;
+            } catch (error) {
+                console.error('Network connectivity check failed:', error);
+                showErrorMessage('Cannot connect to server. Please check your connection and refresh the page.');
+                return false;
+            }
+        }
+        
+        // Show error message function
+        function showErrorMessage(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #dc3545;
+                color: white;
+                padding: 15px;
+                border-radius: 5px;
+                z-index: 10000;
+                max-width: 400px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            `;
+            errorDiv.innerHTML = `
+                <strong>Error:</strong> ${message}
+                <button onclick="this.parentElement.remove()" style="
+                    background: none;
+                    border: none;
+                    color: white;
+                    float: right;
+                    font-size: 18px;
+                    cursor: pointer;
+                    margin-left: 10px;
+                ">&times;</button>
+            `;
+            document.body.appendChild(errorDiv);
+            
+            // Auto-remove after 10 seconds
+            setTimeout(() => {
+                if (errorDiv.parentElement) {
+                    errorDiv.remove();
+                }
+            }, 10000);
+        }
 
         // Close modal when clicking outside
         window.onclick = function(event) {

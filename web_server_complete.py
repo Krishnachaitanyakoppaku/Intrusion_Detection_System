@@ -118,7 +118,7 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/':
             self.path = '/index.html'
-        elif self.path == '/api/rules':
+        elif self.path.startswith('/api/rules'):
             self.get_rules()
             return
         elif self.path == '/api/get_alerts':
