@@ -1,12 +1,18 @@
-%{
+%code requires {
 #define _GNU_SOURCE
+#include "../include/ast.h"
+}
+
+%{
+#include "../include/ast.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../include/ast.h"
+
+// Forward declaration for rule_list
+extern Rule* rule_list;
 
 // External variables
-extern Rule* rule_list;
 extern int yylineno;
 extern char* yytext;
 extern FILE* yyin;

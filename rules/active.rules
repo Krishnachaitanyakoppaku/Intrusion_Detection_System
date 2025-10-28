@@ -1,0 +1,4 @@
+# Active test rules (limited to three)
+alert tcp any any -> any 80 (msg:"HTTP Traffic"; priority:5)
+alert udp any any -> any 53 (msg:"DNS Query"; priority:5)
+alert icmp any any -> any any (msg:"ICMP Flood Attack"; priority:4)

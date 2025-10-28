@@ -67,16 +67,17 @@
 
 
 /* First part of user prologue.  */
-#line 1 "src/parser.y"
+#line 6 "src/parser.y"
 
-#define _GNU_SOURCE
+#include "../include/ast.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../include/ast.h"
+
+// Forward declaration for rule_list
+extern Rule* rule_list;
 
 // External variables
-extern Rule* rule_list;
 extern int yylineno;
 extern char* yytext;
 extern FILE* yyin;
@@ -85,7 +86,7 @@ extern FILE* yyin;
 int yylex(void);
 void yyerror(const char* msg);
 
-#line 89 "src/parser.tab.c"
+#line 90 "src/parser.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -542,9 +543,9 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    39,    39,    41,    50,    65,    66,    67,    71,    72,
-      73,    74,    78,    79,    83,    84,    88,    89,    96,    97,
-     109,   113,   117,   124,   131,   135,   142
+       0,    45,    45,    47,    56,    71,    72,    73,    77,    78,
+      79,    80,    84,    85,    89,    90,    94,    95,   102,   103,
+     115,   119,   123,   130,   137,   141,   148
 };
 #endif
 
@@ -1130,17 +1131,17 @@ yyreduce:
   switch (yyn)
     {
   case 3: /* rules: rules rule SEMICOLON  */
-#line 42 "src/parser.y"
+#line 48 "src/parser.y"
     {
         if ((yyvsp[-1].rule)) {
             add_rule_to_list(&rule_list, (yyvsp[-1].rule));
         }
     }
-#line 1140 "src/parser.tab.c"
+#line 1141 "src/parser.tab.c"
     break;
 
   case 4: /* rule: action protocol ip_address port direction ip_address port LPAREN rule_options RPAREN  */
-#line 51 "src/parser.y"
+#line 57 "src/parser.y"
     {
         (yyval.rule) = create_rule((yyvsp[-9].string), (yyvsp[-8].string), (yyvsp[-7].string), (yyvsp[-6].string), (yyvsp[-5].string), (yyvsp[-4].string), (yyvsp[-3].string));
         if ((yyval.rule) && (yyvsp[-1].option)) {
@@ -1152,98 +1153,98 @@ yyreduce:
             }
         }
     }
-#line 1156 "src/parser.tab.c"
+#line 1157 "src/parser.tab.c"
     break;
 
   case 5: /* action: ALERT  */
-#line 65 "src/parser.y"
+#line 71 "src/parser.y"
           { (yyval.string) = strdup("alert"); }
-#line 1162 "src/parser.tab.c"
+#line 1163 "src/parser.tab.c"
     break;
 
   case 6: /* action: LOG  */
-#line 66 "src/parser.y"
+#line 72 "src/parser.y"
           { (yyval.string) = strdup("log"); }
-#line 1168 "src/parser.tab.c"
+#line 1169 "src/parser.tab.c"
     break;
 
   case 7: /* action: PASS  */
-#line 67 "src/parser.y"
+#line 73 "src/parser.y"
            { (yyval.string) = strdup("pass"); }
-#line 1174 "src/parser.tab.c"
+#line 1175 "src/parser.tab.c"
     break;
 
   case 8: /* protocol: TCP  */
-#line 71 "src/parser.y"
+#line 77 "src/parser.y"
         { (yyval.string) = strdup("tcp"); }
-#line 1180 "src/parser.tab.c"
+#line 1181 "src/parser.tab.c"
     break;
 
   case 9: /* protocol: UDP  */
-#line 72 "src/parser.y"
+#line 78 "src/parser.y"
           { (yyval.string) = strdup("udp"); }
-#line 1186 "src/parser.tab.c"
+#line 1187 "src/parser.tab.c"
     break;
 
   case 10: /* protocol: ICMP  */
-#line 73 "src/parser.y"
+#line 79 "src/parser.y"
            { (yyval.string) = strdup("icmp"); }
-#line 1192 "src/parser.tab.c"
+#line 1193 "src/parser.tab.c"
     break;
 
   case 11: /* protocol: IP  */
-#line 74 "src/parser.y"
+#line 80 "src/parser.y"
          { (yyval.string) = strdup("ip"); }
-#line 1198 "src/parser.tab.c"
+#line 1199 "src/parser.tab.c"
     break;
 
   case 12: /* direction: RIGHT_ARROW  */
-#line 78 "src/parser.y"
+#line 84 "src/parser.y"
                 { (yyval.string) = strdup("->"); }
-#line 1204 "src/parser.tab.c"
+#line 1205 "src/parser.tab.c"
     break;
 
   case 13: /* direction: BIDIRECTIONAL  */
-#line 79 "src/parser.y"
+#line 85 "src/parser.y"
                     { (yyval.string) = strdup("<>"); }
-#line 1210 "src/parser.tab.c"
+#line 1211 "src/parser.tab.c"
     break;
 
   case 14: /* ip_address: IP_ADDRESS  */
-#line 83 "src/parser.y"
+#line 89 "src/parser.y"
                { (yyval.string) = (yyvsp[0].string); }
-#line 1216 "src/parser.tab.c"
+#line 1217 "src/parser.tab.c"
     break;
 
   case 15: /* ip_address: STRING  */
-#line 84 "src/parser.y"
+#line 90 "src/parser.y"
              { (yyval.string) = (yyvsp[0].string); }
-#line 1222 "src/parser.tab.c"
+#line 1223 "src/parser.tab.c"
     break;
 
   case 16: /* port: PORT  */
-#line 88 "src/parser.y"
+#line 94 "src/parser.y"
          { (yyval.string) = (yyvsp[0].string); }
-#line 1228 "src/parser.tab.c"
+#line 1229 "src/parser.tab.c"
     break;
 
   case 17: /* port: NUMBER  */
-#line 89 "src/parser.y"
+#line 95 "src/parser.y"
              { 
         (yyval.string) = malloc(16);
         sprintf((yyval.string), "%d", (yyvsp[0].number));
     }
-#line 1237 "src/parser.tab.c"
+#line 1238 "src/parser.tab.c"
     break;
 
   case 18: /* rule_options: %empty  */
-#line 96 "src/parser.y"
+#line 102 "src/parser.y"
                 { (yyval.option) = NULL; }
-#line 1243 "src/parser.tab.c"
+#line 1244 "src/parser.tab.c"
     break;
 
   case 19: /* rule_options: rule_options rule_option  */
-#line 98 "src/parser.y"
+#line 104 "src/parser.y"
     {
         if ((yyvsp[0].option)) {
             (yyvsp[0].option)->next = (yyvsp[-1].option);
@@ -1252,76 +1253,76 @@ yyreduce:
             (yyval.option) = (yyvsp[-1].option);
         }
     }
-#line 1256 "src/parser.tab.c"
+#line 1257 "src/parser.tab.c"
     break;
 
   case 20: /* rule_option: MSG COLON STRING  */
-#line 110 "src/parser.y"
+#line 116 "src/parser.y"
     {
         (yyval.option) = create_rule_option("msg", (yyvsp[0].string));
     }
-#line 1264 "src/parser.tab.c"
+#line 1265 "src/parser.tab.c"
     break;
 
   case 21: /* rule_option: CONTENT COLON STRING  */
-#line 114 "src/parser.y"
+#line 120 "src/parser.y"
     {
         (yyval.option) = create_rule_option("content", (yyvsp[0].string));
     }
-#line 1272 "src/parser.tab.c"
+#line 1273 "src/parser.tab.c"
     break;
 
   case 22: /* rule_option: SID COLON NUMBER  */
-#line 118 "src/parser.y"
+#line 124 "src/parser.y"
     {
         char* sid_str = malloc(16);
         sprintf(sid_str, "%d", (yyvsp[0].number));
         (yyval.option) = create_rule_option("sid", sid_str);
         free(sid_str);
     }
-#line 1283 "src/parser.tab.c"
+#line 1284 "src/parser.tab.c"
     break;
 
   case 23: /* rule_option: REV COLON NUMBER  */
-#line 125 "src/parser.y"
+#line 131 "src/parser.y"
     {
         char* rev_str = malloc(16);
         sprintf(rev_str, "%d", (yyvsp[0].number));
         (yyval.option) = create_rule_option("rev", rev_str);
         free(rev_str);
     }
-#line 1294 "src/parser.tab.c"
+#line 1295 "src/parser.tab.c"
     break;
 
   case 24: /* rule_option: CLASSTYPE COLON STRING  */
-#line 132 "src/parser.y"
+#line 138 "src/parser.y"
     {
         (yyval.option) = create_rule_option("classtype", (yyvsp[0].string));
     }
-#line 1302 "src/parser.tab.c"
+#line 1303 "src/parser.tab.c"
     break;
 
   case 25: /* rule_option: PRIORITY COLON NUMBER  */
-#line 136 "src/parser.y"
+#line 142 "src/parser.y"
     {
         char* priority_str = malloc(16);
         sprintf(priority_str, "%d", (yyvsp[0].number));
         (yyval.option) = create_rule_option("priority", priority_str);
         free(priority_str);
     }
-#line 1313 "src/parser.tab.c"
+#line 1314 "src/parser.tab.c"
     break;
 
   case 26: /* rule_option: REFERENCE COLON STRING  */
-#line 143 "src/parser.y"
+#line 149 "src/parser.y"
     {
         (yyval.option) = create_rule_option("reference", (yyvsp[0].string));
     }
-#line 1321 "src/parser.tab.c"
+#line 1322 "src/parser.tab.c"
     break;
 
 
-#line 1325 "src/parser.tab.c"
+#line 1326 "src/parser.tab.c"
 
       default: break;
     }
@@ -1514,7 +1515,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 148 "src/parser.y"
+#line 154 "src/parser.y"
 
 
 // Global rule list

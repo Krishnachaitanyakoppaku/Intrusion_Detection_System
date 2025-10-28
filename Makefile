@@ -2,7 +2,7 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -I./include -g -Wall -Wextra -std=c99
-LDFLAGS = -lfl -lpcap
+LDFLAGS = -lfl -lpcap -lcurl -ljson-c -lm
 
 # Directories
 SRC_DIR = src
@@ -15,8 +15,9 @@ C_SRCS = $(wildcard $(SRC_DIR)/*.c)
 Y_SRCS = $(wildcard $(SRC_DIR)/*.y)
 L_SRCS = $(wildcard $(SRC_DIR)/*.l)
 
-# Generate object file names
-OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(filter %.c, $(C_SRCS))) \
+# Generate object file names - exclude generated files
+C_OBJS = $(filter-out $(SRC_DIR)/lex.yy.c $(SRC_DIR)/parser.tab.c, $(C_SRCS))
+OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(filter %.c, $(C_OBJS))) \
        $(patsubst $(SRC_DIR)/%.y, $(BUILD_DIR)/parser.o, $(filter %.y, $(Y_SRCS))) \
        $(patsubst $(SRC_DIR)/%.l, $(BUILD_DIR)/lexer.o, $(filter %.l, $(L_SRCS)))
 

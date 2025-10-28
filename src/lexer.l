@@ -1,9 +1,12 @@
 %{
+#define _GNU_SOURCE
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../include/parser.h"
+#include <unistd.h>
 #include "../include/ast.h"
+#include "../include/parser.h"
 
 // External variables for parser communication
 extern Rule* rule_list;
@@ -19,7 +22,6 @@ void yyerror(const char* msg);
 
 %%
 
-/* Keywords */
 "alert"     { return ALERT; }
 "log"       { return LOG; }
 "pass"      { return PASS; }
@@ -28,11 +30,9 @@ void yyerror(const char* msg);
 "icmp"      { return ICMP; }
 "ip"        { return IP; }
 
-/* Direction operators */
 "->"        { return RIGHT_ARROW; }
 "<>"        { return BIDIRECTIONAL; }
 
-/* Rule options */
 "msg"       { return MSG; }
 "content"   { return CONTENT; }
 "sid"       { return SID; }
@@ -41,7 +41,6 @@ void yyerror(const char* msg);
 "priority"  { return PRIORITY; }
 "reference" { return REFERENCE; }
 
-/* IP addresses and ports */
 [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+ { 
     yylval.string = strdup(yytext);
     return IP_ADDRESS; 
@@ -57,14 +56,7 @@ void yyerror(const char* msg);
     return NUMBER; 
 }
 
-"any"       { 
-    yylval.string = strdup("any");
-    return PORT; 
-}
-
-/* Strings in quotes */
-\"([^\"\\]|\\.)*\" { 
-    // Remove quotes and store the string
+\"[^\"]*\" { 
     int len = strlen(yytext);
     yylval.string = malloc(len - 1);
     strncpy(yylval.string, yytext + 1, len - 2);
@@ -72,9 +64,7 @@ void yyerror(const char* msg);
     return STRING; 
 }
 
-/* Single quoted strings */
-\'([^\'\\]|\\.)*\' { 
-    // Remove quotes and store the string
+\'[^\']*\' { 
     int len = strlen(yytext);
     yylval.string = malloc(len - 1);
     strncpy(yylval.string, yytext + 1, len - 2);
@@ -82,7 +72,6 @@ void yyerror(const char* msg);
     return STRING; 
 }
 
-/* Operators and delimiters */
 "("         { return LPAREN; }
 ")"         { return RPAREN; }
 ";"         { return SEMICOLON; }
@@ -92,16 +81,12 @@ void yyerror(const char* msg);
 "|"         { return OR; }
 "&"         { return AND; }
 
-/* Whitespace - ignore */
-[ \t\r]+    { /* ignore whitespace */ }
+[ \t\r]+    { }
 
-/* Newlines - count them */
 \n          { yylineno++; }
 
-/* Comments - ignore */
-"#".*       { /* ignore comments */ }
+"#"[^\n]*       { }
 
-/* Error handling */
 .           { 
     fprintf(stderr, "Lexical error: unexpected character '%c' at line %d\n", 
             yytext[0], yylineno);
@@ -109,8 +94,3 @@ void yyerror(const char* msg);
 }
 
 %%
-
-// Function to handle lexical errors
-void yyerror(const char* msg) {
-    fprintf(stderr, "Lexical error at line %d: %s\n", yylineno, msg);
-}
