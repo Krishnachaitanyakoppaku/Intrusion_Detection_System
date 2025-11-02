@@ -8,9 +8,27 @@ bash install_complete.sh
 ```
 
 ### **Start the System:**
+
+**For Demo (Recommended):**
 ```bash
-python3 web_server_complete.py
+# Windows
+start_demo.bat
+
+# Linux/Mac
+chmod +x start_demo.sh
+./start_demo.sh
 ```
+
+**Manual Start:**
+```bash
+# Linux/Mac (requires sudo for packet capture)
+sudo python3 web_server_complete.py
+
+# Windows
+python web_server_complete.py
+```
+
+**⚠️ Note:** Use sudo on Linux/Mac for full packet capture functionality!
 
 ### **Access Web Interface:**
 Open your browser and go to: `http://localhost:8080`
@@ -75,14 +93,17 @@ bash install_complete.sh
 ```bash
 # Install system dependencies
 sudo apt update
-sudo apt install -y build-essential bison flex libpcap-dev python3 python3-pip python3-requests curl
+sudo apt install -y build-essential bison flex libpcap-dev python3 python3-pip curl
 
-# Build the project
+# Install Python packages
+pip3 install psutil scapy requests
+
+# Build the project (optional, for C engine)
 make clean
 make
 
 # Start the web server
-python3 web_server_complete.py
+sudo python3 web_server_complete.py
 ```
 
 ## 🎯 **Usage Guide**

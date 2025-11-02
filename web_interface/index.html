@@ -309,7 +309,7 @@
         <div class="main-content">
             <!-- AI-Powered Rule Creator -->
             <div class="card">
-                <h2>🤖 Gemini AI Rule Creator</h2>
+                <h2> Gemini AI Rule Creator</h2>
                 <div class="gemini-status">
                     ✅ Gemini API Connected - Ready for AI conversion
                 </div>
@@ -329,7 +329,7 @@
                 <button class="btn btn-success" onclick="addRule()">➕ Add Rule to Engine</button>
                 
                 <div class="examples">
-                    <h4>💡 Click to try these examples:</h4>
+                    <h4> Click to try these examples:</h4>
                     <ul>
                         <li onclick="setExample('Detect SQL injection attempts')">Detect SQL injection attempts</li>
                         <li onclick="setExample('Monitor for XSS attacks')">Monitor for XSS attacks</li>
@@ -343,7 +343,7 @@
 
             <!-- Engine Control -->
             <div class="card">
-                <h2>⚙️ Engine Control</h2>
+                <h2> Engine Control</h2>
                 <div class="input-group">
                     <label for="interface">Network Interface:</label>
                     <select id="interface">
@@ -372,7 +372,7 @@
 
         <!-- All Rules Library -->
         <div class="card full-width">
-            <h2>📚 All Rules Library (Add Rules from Catalog)</h2>
+            <h2> All Rules Library (Add Rules from Catalog)</h2>
             <p style="margin-bottom: 20px; color: #666;">
                 Browse all available security rules. Click "Add to Current Rules" to activate any rule.
             </p>
@@ -392,7 +392,7 @@
 
         <!-- Current Active Rules -->
         <div class="card full-width">
-            <h2>🎯 Current Active Rules (Checked by IDS Engine)</h2>
+            <h2> Current Active Rules (Checked by IDS Engine)</h2>
             <p style="margin-bottom: 20px; color: #666;">
                 These are the rules currently active in your IDS system. Only these rules will be checked to raise alerts.
             </p>
@@ -410,7 +410,7 @@
 
         <!-- Live Alerts -->
         <div class="card full-width">
-            <h2>🚨 Live Security Alerts</h2>
+            <h2> Live Security Alerts</h2>
             <div class="alerts-container" id="alerts-container">
                 <p style="text-align: center; color: #666; padding: 20px;">
                     Start the engine to see live security alerts...
@@ -420,15 +420,49 @@
         </div>
 
         <!-- Firewall Monitoring -->
-        <div class="card full-width muted">
-            <h2>🔥 Firewall & System Monitoring (Disabled)</h2>
+        <div class="card full-width">
+            <h2>🔥 Firewall Event Monitor</h2>
             <p style="margin-bottom: 20px; color: #666;">
-                This section is temporarily disabled. We'll re-enable firewall monitoring later.
+                Real-time monitoring of firewall configuration changes and security events. Detects commands like <code>ufw reset</code>, <code>iptables -F</code>, and other critical firewall operations.
             </p>
             
-            <div class="alerts-container" id="firewall-alerts-container">
+            <!-- Firewall Stats -->
+            <div id="firewall-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2em; font-weight: bold;" id="stat-critical">0</div>
+                    <div>Critical</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #fd7e14 0%, #e8590c 100%); color: white; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2em; font-weight: bold;" id="stat-high">0</div>
+                    <div>High</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: white; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2em; font-weight: bold;" id="stat-medium">0</div>
+                    <div>Medium</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); color: white; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2em; font-weight: bold;" id="stat-low">0</div>
+                    <div>Low</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2em; font-weight: bold;" id="stat-total">0</div>
+                    <div>Total Events</div>
+                </div>
+            </div>
+            
+            <!-- Filter Controls -->
+            <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn" onclick="loadFirewallEvents()">🔄 Refresh Events</button>
+                <button class="btn btn-danger" onclick="loadFirewallEvents('critical')">🔥 Critical Only</button>
+                <button class="btn btn-warning" onclick="loadFirewallEvents('high')">⚠️ High Priority</button>
+                <button class="btn btn-info" onclick="loadFirewallEvents()">📋 All Events</button>
+                <button class="btn" onclick="toggleFirewallStream()" id="stream-toggle-btn">▶️ Start Live Stream</button>
+            </div>
+            
+            <!-- Firewall Events Container -->
+            <div class="alerts-container" id="firewall-events-container" style="max-height: 600px;">
                 <p style="text-align: center; color: #666; padding: 20px;">
-                    Firewall monitoring is disabled.
+                    Loading firewall events...
                 </p>
             </div>
         </div>
@@ -470,7 +504,7 @@
             const naturalLanguage = document.getElementById('natural-language').value;
             if (!naturalLanguage) { alert('Please enter a natural language description'); return; }
             const dslRuleElement = document.getElementById('dsl-rule');
-            dslRuleElement.textContent = '🤖 Gemini AI is processing your request...';
+            dslRuleElement.textContent = ' Gemini AI is processing your request...';
             try {
                 const response = await fetch('/api/convert_rule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: naturalLanguage }) });
                 const data = await response.json();
@@ -578,7 +612,8 @@
         async function loadCurrentRules() {
             try {
                 const timestamp = new Date().getTime();
-                const response = await fetch(`/api/rules?t=${timestamp}`);
+                // Load from active rules so the UI reflects the currently enforced set
+                const response = await fetch(`/api/active_rules?t=${timestamp}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
                 if (!data.rules) throw new Error('Invalid response format');
@@ -742,7 +777,192 @@
             } catch (error) { console.error('Error fetching alerts:', error); }
         }
 
-        document.addEventListener('DOMContentLoaded', function() { loadCurrentRules(); });
+        // Firewall Events Management
+        let firewallEventSource = null;
+        let firewallStreamActive = false;
+        
+        async function loadFirewallEvents(severity = null) {
+            try {
+                let url = '/api/firewall_events?count=100';
+                if (severity) {
+                    url += `&severity=${severity}`;
+                }
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.error) {
+                    document.getElementById('firewall-events-container').innerHTML = 
+                        `<p style="text-align: center; color: #dc3545; padding: 20px;">Error: ${data.error}</p>`;
+                    return;
+                }
+                
+                // Update stats
+                if (data.stats) {
+                    updateFirewallStats(data.stats);
+                }
+                
+                // Display events
+                displayFirewallEvents(data.events || []);
+            } catch (error) {
+                console.error('Error loading firewall events:', error);
+                document.getElementById('firewall-events-container').innerHTML = 
+                    '<p style="text-align: center; color: #dc3545; padding: 20px;">Error loading firewall events. Make sure firewall parser is available.</p>';
+            }
+        }
+        
+        function updateFirewallStats(stats) {
+            document.getElementById('stat-critical').textContent = stats.critical || 0;
+            document.getElementById('stat-high').textContent = stats.high || 0;
+            document.getElementById('stat-medium').textContent = stats.medium || 0;
+            document.getElementById('stat-low').textContent = stats.low || 0;
+            document.getElementById('stat-total').textContent = stats.total_events || 0;
+        }
+        
+        function displayFirewallEvents(events) {
+            const container = document.getElementById('firewall-events-container');
+            
+            if (events.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No firewall events detected yet. Events will appear here when firewall commands are executed.</p>';
+                return;
+            }
+            
+            const html = events.map((event, index) => {
+                const severityClass = event.severity || 'medium';
+                const severityColors = {
+                    'critical': '#dc3545',
+                    'high': '#fd7e14',
+                    'medium': '#ffc107',
+                    'low': '#28a745'
+                };
+                const severityColor = severityColors[severityClass] || '#ffc107';
+                
+                const iconMap = {
+                    'ufw_reset': '🔥',
+                    'ufw_disable': '🔥',
+                    'iptables_flush': '🔥',
+                    'iptables_delete': '🔥',
+                    'firewall_stop': '🔥',
+                    'chmod_dangerous': '⚠️',
+                    'iptables_rule_change': '⚙️',
+                    'ufw_rule_add': '➕',
+                    'ufw_enable': '✅',
+                    'firewall_reload': '🔄',
+                    'root_command': '🔐',
+                    'privilege_escalation': '⚠️'
+                };
+                const icon = iconMap[event.event_type] || '📋';
+                
+                return `
+                    <div class="alert-item ${severityClass}" style="border-left-color: ${severityColor}; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                            <div style="font-size: 1.5em;">${icon}</div>
+                            <div style="flex: 1; margin-left: 10px;">
+                                <div style="font-weight: bold; color: ${severityColor}; margin-bottom: 5px;">
+                                    ${escapeHtml(event.description || 'Firewall Event')}
+                                </div>
+                                <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">
+                                    <strong>Time:</strong> ${event.timestamp || 'Unknown'}
+                                </div>
+                                ${event.source_ip ? `<div style="font-size: 0.9em; color: #666; margin-bottom: 5px;"><strong>Source IP:</strong> ${escapeHtml(event.source_ip)}</div>` : ''}
+                                ${event.hostname ? `<div style="font-size: 0.9em; color: #666; margin-bottom: 5px;"><strong>Host:</strong> ${escapeHtml(event.hostname)}</div>` : ''}
+                                ${event.command ? `<div style="font-size: 0.85em; font-family: monospace; background: #f8f9fa; padding: 8px; border-radius: 4px; margin-top: 8px; color: #495057;"><strong>Command:</strong> ${escapeHtml(event.command)}</div>` : ''}
+                            </div>
+                            <div style="padding: 5px 10px; background: ${severityColor}; color: white; border-radius: 4px; font-size: 0.8em; font-weight: bold; text-transform: uppercase;">
+                                ${severityClass}
+                            </div>
+                        </div>
+                        ${event.raw_line ? `<details style="margin-top: 8px;"><summary style="cursor: pointer; color: #667eea; font-size: 0.85em;">View Raw Log</summary><pre style="font-size: 0.75em; background: #f8f9fa; padding: 8px; border-radius: 4px; margin-top: 5px; overflow-x: auto;">${escapeHtml(event.raw_line)}</pre></details>` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+            
+            // Auto-scroll to bottom for newest events
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function toggleFirewallStream() {
+            if (firewallStreamActive) {
+                stopFirewallStream();
+            } else {
+                startFirewallStream();
+            }
+        }
+        
+        function startFirewallStream() {
+            if (firewallEventSource) {
+                firewallEventSource.close();
+            }
+            
+            const container = document.getElementById('firewall-events-container');
+            container.innerHTML = '<p style="text-align: center; color: #28a745; padding: 20px;">🔴 Live stream active. Waiting for firewall events...</p>';
+            
+            try {
+                firewallEventSource = new EventSource('/api/firewall_events/stream');
+                firewallStreamActive = true;
+                
+                firewallEventSource.onmessage = (event) => {
+                    try {
+                        const eventData = JSON.parse(event.data);
+                        // Get current events and add new one
+                        loadFirewallEvents();
+                    } catch (e) {
+                        console.error('Error parsing firewall event:', e);
+                    }
+                };
+                
+                firewallEventSource.onerror = () => {
+                    console.warn('Firewall event stream error');
+                    firewallEventSource.close();
+                    firewallEventSource = null;
+                    firewallStreamActive = false;
+                    document.getElementById('stream-toggle-btn').textContent = '▶️ Start Live Stream';
+                    loadFirewallEvents(); // Fallback to polling
+                };
+                
+                document.getElementById('stream-toggle-btn').textContent = '⏸️ Stop Live Stream';
+                document.getElementById('stream-toggle-btn').classList.add('btn-danger');
+                document.getElementById('stream-toggle-btn').classList.remove('btn-info');
+                
+                // Also start polling as backup
+                if (window.firewallPollInterval) clearInterval(window.firewallPollInterval);
+                window.firewallPollInterval = setInterval(() => {
+                    if (firewallStreamActive) {
+                        loadFirewallEvents();
+                    }
+                }, 5000);
+                
+            } catch (e) {
+                console.warn('SSE not available, using polling');
+                firewallStreamActive = false;
+                if (window.firewallPollInterval) clearInterval(window.firewallPollInterval);
+                window.firewallPollInterval = setInterval(loadFirewallEvents, 3000);
+                document.getElementById('stream-toggle-btn').textContent = '🔄 Polling Active';
+                loadFirewallEvents();
+            }
+        }
+        
+        function stopFirewallStream() {
+            if (firewallEventSource) {
+                firewallEventSource.close();
+                firewallEventSource = null;
+            }
+            firewallStreamActive = false;
+            if (window.firewallPollInterval) {
+                clearInterval(window.firewallPollInterval);
+                window.firewallPollInterval = null;
+            }
+            document.getElementById('stream-toggle-btn').textContent = '▶️ Start Live Stream';
+            document.getElementById('stream-toggle-btn').classList.remove('btn-danger');
+            document.getElementById('stream-toggle-btn').classList.add('btn-info');
+            loadFirewallEvents(); // Show current events
+        }
+
+        document.addEventListener('DOMContentLoaded', function() { 
+            loadCurrentRules(); 
+            loadFirewallEvents(); // Load firewall events on page load
+        });
 
         window.onclick = function(event) { const modal = document.getElementById('editModal'); if (event.target == modal) { closeEditModal(); } }
     </script>

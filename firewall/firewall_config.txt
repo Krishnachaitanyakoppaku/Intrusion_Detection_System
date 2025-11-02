@@ -1,0 +1,7 @@
+Firewall Configuration
+======================
+Setup Date: Sun Nov  2 15:37:20 IST 2025
+Internet Interface: eth0
+Client Interface: eth0
+Client Network: 192.168.50.1/24
+Log File: /mnt/c/Users/saina/OneDrive/Desktop/CD/Project/Intrusion_Detection_System/firewall/logs/firewall.log

@@ -68,7 +68,7 @@ install_python_dependencies() {
     print_status "Installing Python dependencies..."
     
     # Install required Python packages
-    pip3 install --user requests urllib3
+    pip3 install --user psutil scapy requests
     
     print_success "Python dependencies installed successfully!"
 }
@@ -87,14 +87,15 @@ build_project() {
     if make > /dev/null 2>&1; then
         print_success "Full project built successfully!"
     else
-        print_warning "Full build failed, creating simplified version..."
+        print_warning "Full build failed. This is OK - web server uses scapy_capture.py instead."
+        print_status "Creating minimal C engine..."
         
-        # Build simplified version
-        gcc -o bin/simple_ids simple_ids.c -lpcap 2>/dev/null || {
-            print_error "Failed to build simplified IDS engine"
-            exit 1
-        }
-        print_success "Simplified IDS engine built successfully!"
+        # Try to build minimal engine if source exists
+        if [ -f src/main.c ]; then
+            gcc -o bin/ids_engine src/main.c src/engine.c -lpcap 2>/dev/null || {
+                print_warning "C engine build failed - using Python-only capture"
+            }
+        fi
     fi
 }
 
@@ -181,19 +182,19 @@ EOF
 test_installation() {
     print_status "Testing installation..."
     
-    # Test if simple IDS engine exists and is executable
-    if [ -f bin/simple_ids ] && [ -x bin/simple_ids ]; then
+    # Test if IDS engine exists and is executable
+    if [ -f bin/ids_engine ] && [ -x bin/ids_engine ]; then
         print_success "IDS engine binary is ready"
     else
-        print_error "IDS engine binary not found or not executable"
-        return 1
+        print_warning "IDS engine binary not found - using Python-only capture (this is OK)"
     fi
     
     # Test if Python dependencies are available
-    if python3 -c "import requests" 2>/dev/null; then
+    if python3 -c "import psutil, scapy, requests" 2>/dev/null; then
         print_success "Python dependencies are available"
     else
         print_warning "Python dependencies may not be fully installed"
+        print_status "Run: pip3 install psutil scapy requests"
     fi
     
     # Test if web interface exists
@@ -219,7 +220,7 @@ echo "🛡️ Starting IDS DSL Engine System..."
 
 # Kill any existing processes
 pkill -f "python3.*web_server" 2>/dev/null || true
-pkill -f "simple_ids" 2>/dev/null || true
+pkill -f "ids_engine" 2>/dev/null || true
 
 # Start the web server with Gemini AI integration
 echo "🌐 Starting web server with Gemini AI integration..."

@@ -9,6 +9,8 @@ import time
 import json
 import socket
 import struct
+import subprocess
+import re
 from datetime import datetime
 
 try:
@@ -21,6 +23,99 @@ except ImportError:
     print("[WARNING] Scapy not installed. Installing...")
     print("Run: pip install scapy")
     sys.exit(1)
+
+
+def is_wsl():
+    """Check if running in WSL"""
+    try:
+        with open('/proc/version', 'r') as f:
+            version = f.read().lower()
+            return 'microsoft' in version or 'wsl' in version
+    except:
+        return False
+
+
+def get_windows_host_ip():
+    """Get Windows host IP address when running in WSL"""
+    try:
+        # Get default gateway which is usually Windows host in WSL
+        result = subprocess.run(['ip', 'route', 'show'], capture_output=True, text=True)
+        match = re.search(r'default via (\d+\.\d+\.\d+\.\d+)', result.stdout)
+        if match:
+            return match.group(1)
+        
+        # Alternative: Get IP from interface connected to default route
+        result = subprocess.run(['ip', 'route', 'get', '8.8.8.8'], capture_output=True, text=True)
+        # Extract the source IP from the route
+        match = re.search(r'src (\d+\.\d+\.\d+\.\d+)', result.stdout)
+        if match:
+            src_ip = match.group(1)
+            # If it's not a WSL IP (not 172.x.x.x), return it
+            if not src_ip.startswith('172.'):
+                return src_ip
+    except:
+        pass
+    return None
+
+
+def get_windows_network_ip():
+    """Get Windows network IP (WiFi/Ethernet IP) when in WSL"""
+    try:
+        # Get all IP addresses
+        result = subprocess.run(['hostname', '-I'], capture_output=True, text=True)
+        ips = result.stdout.strip().split()
+        
+        # Find non-WSL IP (not 172.x.x.x, not 127.x.x.x)
+        for ip in ips:
+            if not ip.startswith('172.') and not ip.startswith('127.'):
+                return ip
+        
+        # If all are WSL IPs, get Windows host IP from gateway
+        return get_windows_host_ip()
+    except:
+        return None
+
+
+def get_wsl_ip():
+    """Get WSL's own IP address"""
+    try:
+        result = subprocess.run(['hostname', '-I'], capture_output=True, text=True)
+        wsl_ips = result.stdout.strip().split()
+        if wsl_ips:
+            return wsl_ips[0]
+    except:
+        pass
+    return None
+
+
+def map_ip_to_windows(ip_address, windows_network_ip, windows_host_ip, wsl_ip):
+    """Map WSL IP to Windows IP if the IP matches WSL IP"""
+    if not ip_address:
+        return ip_address
+    
+    # Prefer network IP (actual WiFi/Ethernet IP) over host IP (gateway)
+    windows_ip = windows_network_ip or windows_host_ip
+    if not windows_ip or not wsl_ip:
+        return ip_address
+    
+    # If IP exactly matches WSL IP, replace with Windows IP
+    if ip_address == wsl_ip:
+        return windows_ip
+    
+    # Check if IP is in WSL subnet (WSL typically uses 172.x.x.x)
+    # Map any IP in WSL subnet to Windows IP
+    if ip_address.startswith('172.') and wsl_ip.startswith('172.'):
+        # Extract first two octets for subnet matching
+        wsl_subnet = '.'.join(wsl_ip.split('.')[:2])
+        ip_subnet = '.'.join(ip_address.split('.')[:2])
+        
+        # If it's in the same subnet as WSL, replace with Windows IP
+        # This handles cases where WSL IP changes but is still in 172.x.x.x range
+        if ip_subnet == wsl_subnet:
+            # Map to Windows IP
+            return windows_ip
+    
+    return ip_address
 
 
 class PacketCaptureEngine:
@@ -38,6 +133,31 @@ class PacketCaptureEngine:
         self.running = False
         self.packet_count = 0
         self.alert_count = 0
+        
+        # WSL IP mapping
+        self.is_wsl = is_wsl()
+        self.windows_host_ip = None
+        self.windows_network_ip = None
+        self.wsl_ip = None
+        
+        if self.is_wsl:
+            self.windows_host_ip = get_windows_host_ip()
+            self.windows_network_ip = get_windows_network_ip()
+            self.wsl_ip = get_wsl_ip()
+            
+            if self.windows_network_ip or self.windows_host_ip:
+                print(f"[WSL] Detected WSL environment")
+                if self.windows_network_ip:
+                    print(f"   Windows Network IP: {self.windows_network_ip}")
+                if self.windows_host_ip:
+                    print(f"   Windows Host IP: {self.windows_host_ip}")
+                print(f"   WSL IP: {self.wsl_ip}")
+                print(f"   IP addresses will be mapped to Windows IP in logs")
+            else:
+                print(f"[WSL] WSL detected but could not get Windows IP")
+                print(f"   Logs will show WSL IP addresses")
+        else:
+            print(f"[OK] Running on native Linux")
         
         # Load rules
         self.rules = self._load_rules()
@@ -152,10 +272,22 @@ class PacketCaptureEngine:
             else:
                 return False
             
-            # Check IP match
+            # Check IP match (require IP layer for TCP/UDP rules)
+            if rule['protocol'] in ['tcp', 'udp']:
+                # TCP/UDP rules require IP layer (IPv4 or IPv6)
+                if not (packet.haslayer(IP) or packet.haslayer(IPv6)):
+                    return False
+            
+            # Extract IP packet (IPv4 or IPv6)
+            ip_packet = None
+            is_ipv6 = False
             if packet.haslayer(IP):
                 ip_packet = packet[IP]
-                
+            elif packet.haslayer(IPv6):
+                ip_packet = packet[IPv6]
+                is_ipv6 = True
+            
+            if ip_packet:
                 # Check source IP
                 if rule['src_ip'] != 'any':
                     if str(ip_packet.src) != rule['src_ip']:
@@ -212,6 +344,11 @@ class PacketCaptureEngine:
                 ip_packet = packet[IP]
                 src_ip = str(ip_packet.src)
                 dst_ip = str(ip_packet.dst)
+                
+                # Map WSL IPs to Windows IPs if in WSL
+                if self.is_wsl and self.windows_host_ip and self.wsl_ip:
+                    src_ip = map_ip_to_windows(src_ip, self.windows_host_ip, self.wsl_ip)
+                    dst_ip = map_ip_to_windows(dst_ip, self.windows_host_ip, self.wsl_ip)
                 
                 if packet.haslayer(TCP):
                     protocol = "TCP"
@@ -273,22 +410,49 @@ class PacketCaptureEngine:
             dst_port = 0
             protocol = "unknown"
             
+            # Extract IP information (support both IPv4 and IPv6)
             if packet.haslayer(IP):
                 ip_packet = packet[IP]
                 src_ip = str(ip_packet.src)
                 dst_ip = str(ip_packet.dst)
                 
+                # Map WSL IPs to Windows IPs if in WSL
+                if self.is_wsl and (self.windows_host_ip or self.windows_network_ip) and self.wsl_ip:
+                    src_ip = map_ip_to_windows(src_ip, self.windows_network_ip, self.windows_host_ip, self.wsl_ip)
+                    dst_ip = map_ip_to_windows(dst_ip, self.windows_network_ip, self.windows_host_ip, self.wsl_ip)
+                
                 if packet.haslayer(TCP):
                     protocol = "TCP"
-                    src_port = ip_packet.sport
-                    dst_port = ip_packet.dport
+                    tcp_packet = packet[TCP]
+                    src_port = tcp_packet.sport
+                    dst_port = tcp_packet.dport
                 elif packet.haslayer(UDP):
                     protocol = "UDP"
-                    src_port = ip_packet.sport
-                    dst_port = ip_packet.dport
+                    udp_packet = packet[UDP]
+                    src_port = udp_packet.sport
+                    dst_port = udp_packet.dport
                 elif packet.haslayer(ICMP):
                     protocol = "ICMP"
+            elif packet.haslayer(IPv6):
+                # Handle IPv6 packets
+                ipv6_packet = packet[IPv6]
+                src_ip = str(ipv6_packet.src)
+                dst_ip = str(ipv6_packet.dst)
+                
+                if packet.haslayer(TCP):
+                    protocol = "TCP"
+                    tcp_packet = packet[TCP]
+                    src_port = tcp_packet.sport
+                    dst_port = tcp_packet.dport
+                elif packet.haslayer(UDP):
+                    protocol = "UDP"
+                    udp_packet = packet[UDP]
+                    src_port = udp_packet.sport
+                    dst_port = udp_packet.dport
+                elif packet.haslayer(ICMP):
+                    protocol = "ICMPv6"
             else:
+                # No IP layer - this shouldn't match TCP/UDP rules, but handle gracefully
                 src_ip = "N/A"
                 dst_ip = "N/A"
             

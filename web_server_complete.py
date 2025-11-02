@@ -14,6 +14,23 @@ import re
 import psutil
 import logging
 
+# Import firewall parser (C-based Lex/Yacc parser)
+try:
+    # Try to import the C-based parser wrapper
+    firewall_parser_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'firewall')
+    sys.path.insert(0, firewall_parser_path)
+    from firewall_parser_python import FirewallEventParser
+    FIREWALL_PARSER_AVAILABLE = True
+    print("✅ Firewall parser (Lex/Yacc) loaded successfully")
+except ImportError as e:
+    print(f"⚠️  Warning: Firewall parser not available: {e}")
+    print("  To build the parser:")
+    print("    1. On Linux/WSL: cd firewall && make")
+    print("    2. Or: bash firewall/build_parser.sh")
+    print("    3. Make sure flex and bison are installed")
+    FIREWALL_PARSER_AVAILABLE = False
+    FirewallEventParser = None
+
 # Gemini API integration
 GEMINI_API_KEY = "AIzaSyCK3N6q-3kxwLX0p-kqiEJmxPdxlxN-nZg"
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
@@ -115,6 +132,15 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory='web_interface', **kwargs)
     
+    def _get_rules_file(self):
+        try:
+            active_path = 'rules/active.rules'
+            if os.path.exists(active_path):
+                return active_path
+        except Exception:
+            pass
+        return RULES_FILE
+    
     def send_json_response(self, data, status=200):
         """Send JSON response with proper headers"""
         self.send_response(status)
@@ -162,8 +188,16 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
                 self.capture_status()
                 return
             elif parsed_path == '/api/get_firewall_alerts':
-                print("Handling /api/get_firewall_alerts request (disabled)")
+                print("Handling /api/get_firewall_alerts request")
                 self.get_firewall_alerts()
+                return
+            elif parsed_path == '/api/firewall_events':
+                print("Handling /api/firewall_events request")
+                self.get_firewall_events()
+                return
+            elif parsed_path == '/api/firewall_events/stream':
+                print("Handling /api/firewall_events/stream (SSE)")
+                self.stream_firewall_events()
                 return
             else:
                 # Restore original path for file serving
@@ -225,27 +259,21 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 print(f"[WARN] Could not refresh logs: {e}")
             
-            # Create minimal active rules for testing from another machine
-            try:
-                os.makedirs('rules', exist_ok=True)
-                with open('rules/active.rules', 'w', encoding='utf-8') as rf:
-                    rf.write(
-                        "# Active test rules (limited to three)\n"
-                        "alert tcp any any -> any 80 (msg:\"HTTP Traffic\"; priority:5)\n"
-                        "alert udp any any -> any 53 (msg:\"DNS Query\"; priority:5)\n"
-                        "alert icmp any any -> any any (msg:\"ICMP Flood Attack\"; priority:4)\n"
-                    )
-                print("[OK] Wrote rules/active.rules with 3 test rules")
-            except Exception as e:
-                print(f"[WARN] Could not write active rules: {e}")
-            
             # Try Scapy first (cross-platform, easier to use)
             if os.path.exists('./scapy_capture.py'):
                 print(f"✅ Using Scapy-based packet capture")
                 if sys.platform == 'win32':
                     cmd = [sys.executable, './scapy_capture.py', interface]
                 else:
-                    cmd = ['sudo', sys.executable, './scapy_capture.py', interface]
+                    # Check if already running with sudo
+                    if os.geteuid() == 0:
+                        cmd = [sys.executable, './scapy_capture.py', interface]
+                    else:
+                        print("⚠️  Please run with sudo to enable packet capture:")
+                        print("   sudo python3 web_server_complete.py")
+                        print("\nStarting web server anyway (monitoring disabled)...")
+                        self.send_json_response({'status': 'started', 'warning': 'Run with sudo for packet capture'})
+                        return
                 print(f"Command: {' '.join(cmd)}")
             # Fallback to C engine
             elif os.path.exists('./bin/ids_engine'):
@@ -383,14 +411,15 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
     
     def get_user_rules(self):
         try:
-            print(f"get_rules called, RULES_FILE={RULES_FILE}, exists={os.path.exists(RULES_FILE)}")
-            rules = []
+            # Use same logic as get_active_rules - read from active.rules if it exists
+            rules_path = self._get_rules_file()
+            print(f"get_user_rules called, reading from {rules_path}")
             user_rules = []
-            if os.path.exists(RULES_FILE):
-                with open(RULES_FILE, 'r') as f:
+            
+            if os.path.exists(rules_path):
+                with open(rules_path, 'r', encoding='utf-8') as f:
                     lines = f.readlines()
                     rule_count = 0
-                    user_rule_count = 0
                     in_user_section = False
                     
                     for line in lines:
@@ -406,25 +435,32 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
                         if line_stripped.startswith('#') or not line_stripped:
                             continue
                         
+                        # If in user section, only add those. Otherwise add all non-comment rules
                         if in_user_section:
                             # This is a user-added rule
                             user_rules.append({
-                                'id': user_rule_count,
+                                'id': rule_count,
                                 'rule': line_stripped,
                                 'enabled': True,
                                 'file_index': rule_count
                             })
-                            user_rule_count += 1
+                        else:
+                            # No user section marker, so add all rules
+                            user_rules.append({
+                                'id': rule_count,
+                                'rule': line_stripped,
+                                'enabled': True,
+                                'file_index': rule_count
+                            })
                         
                         rule_count += 1
-                        
             else:
-                print(f"WARNING: Rules file {RULES_FILE} does not exist!")
+                print(f"WARNING: Rules file {rules_path} does not exist!")
             
             # Debug logging
-            print(f"Loaded {len(rules)} total rules, {len(user_rules)} user rules from {RULES_FILE}")
+            print(f"Loaded {len(user_rules)} rules from {rules_path}")
             
-            # Return only user-added rules
+            # Return all rules from the file
             self.send_json_response({'rules': user_rules})
         except Exception as e:
             print(f"Error loading rules: {e}")
@@ -435,10 +471,11 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
     
     def get_active_rules(self):
         try:
-            print(f"[get_active_rules] Reading from {RULES_FILE}")
+            rules_path = self._get_rules_file()
+            print(f"[get_active_rules] Reading from {rules_path}")
             active = []
-            if os.path.exists(RULES_FILE):
-                with open(RULES_FILE, 'r', encoding='utf-8', errors='ignore') as f:
+            if os.path.exists(rules_path):
+                with open(rules_path, 'r', encoding='utf-8', errors='ignore') as f:
                     rule_id = 0
                     for line_num, line in enumerate(f, 1):
                         s = line.strip()
@@ -463,10 +500,11 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
     def get_all_rules(self):
         """Get all rules (system + user) with descriptions"""
         try:
-            print(f"get_all_rules called, RULES_FILE={RULES_FILE}")
+            rules_path = self._get_rules_file()
+            print(f"get_all_rules called, rules_path={rules_path}")
             all_rules = []
-            if os.path.exists(RULES_FILE):
-                with open(RULES_FILE, 'r') as f:
+            if os.path.exists(rules_path):
+                with open(rules_path, 'r') as f:
                     lines = f.readlines()
                     rule_count = 0
                     for line in lines:
@@ -483,11 +521,11 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
                                 'rule': line_stripped,
                                 'description': self._extract_rule_description(line_stripped),
                                 'category': self._extract_rule_category(line_stripped),
-                                'enabled': False  # Need to check if in user section
+                                'enabled': False
                             })
                             rule_count += 1
             
-            print(f"Loaded {len(all_rules)} total rules from {RULES_FILE}")
+            print(f"Loaded {len(all_rules)} total rules from {rules_path}")
             self.send_json_response({'rules': all_rules})
         except Exception as e:
             print(f"Error loading all rules: {e}")
@@ -545,15 +583,14 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error(400, "No rule provided")
                 return
             
-            # Add rule to file in the user-added section
-            with open(RULES_FILE, 'r') as f:
-                content = f.read()
+            # Use the active rules file
+            rules_path = self._get_rules_file()
             
-            # Append to the end of the file (user section)
-            with open(RULES_FILE, 'a') as f:
+            # Append to the end of the file
+            with open(rules_path, 'a') as f:
                 f.write(f"\n{rule}")
             
-            print(f"Added new rule: {rule}")
+            print(f"Added new rule to {rules_path}: {rule}")
             
             self.send_json_response({'status': 'added', 'rule': rule})
         except Exception as e:
@@ -571,44 +608,40 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error(400, "No rule ID provided")
                 return
             
-            # Read all rules to find user rules
-            with open(RULES_FILE, 'r') as f:
+            # Use the active rules file
+            rules_path = self._get_rules_file()
+            
+            # Read all rules
+            with open(rules_path, 'r') as f:
                 lines = f.readlines()
             
-            # Find and delete only user-added rules (after marker)
+            # Find and delete the rule by ID
             new_lines = []
-            in_user_section = False
-            user_rule_count = 0
+            rule_count = 0
             
             for line in lines:
                 line_stripped = line.strip()
-                
-                # Check for user section marker
-                if 'USER-ADDED RULES' in line_stripped:
-                    in_user_section = True
-                    new_lines.append(line)
-                    continue
                 
                 # Skip comments
                 if line_stripped.startswith('#'):
                     new_lines.append(line)
                     continue
                 
-                # If this is a user rule and it's the one to delete
-                if in_user_section and line_stripped and not line_stripped.startswith('#'):
-                    if user_rule_count == rule_id:
-                        print(f"Deleting user rule #{rule_id}: {line_stripped}")
-                        user_rule_count += 1
+                # If this is the rule to delete
+                if line_stripped:  # Non-empty line
+                    if rule_count == rule_id:
+                        print(f"Deleting rule #{rule_id}: {line_stripped}")
+                        rule_count += 1
                         continue  # Skip this line
-                    user_rule_count += 1
+                    rule_count += 1
                 
                 new_lines.append(line)
             
             # Write back to file
-            with open(RULES_FILE, 'w') as f:
+            with open(rules_path, 'w') as f:
                 f.writelines(new_lines)
             
-            print(f"Successfully deleted user rule #{rule_id}")
+            print(f"Successfully deleted rule #{rule_id}")
             
             self.send_json_response({'status': 'deleted'})
         except Exception as e:
@@ -628,45 +661,41 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error(400, "Rule ID and new rule required")
                 return
             
+            # Use the active rules file
+            rules_path = self._get_rules_file()
+            
             # Read all rules
-            with open(RULES_FILE, 'r') as f:
+            with open(rules_path, 'r') as f:
                 lines = f.readlines()
             
-            # Update only user-added rules (after marker)
+            # Update the rule by ID
             new_lines = []
-            in_user_section = False
-            user_rule_count = 0
+            rule_count = 0
             
             for line in lines:
                 line_stripped = line.strip()
-                
-                # Check for user section marker
-                if 'USER-ADDED RULES' in line_stripped:
-                    in_user_section = True
-                    new_lines.append(line)
-                    continue
                 
                 # Skip comments
                 if line_stripped.startswith('#'):
                     new_lines.append(line)
                     continue
                 
-                # If this is a user rule and it's the one to update
-                if in_user_section and line_stripped and not line_stripped.startswith('#'):
-                    if user_rule_count == rule_id:
-                        print(f"Updating user rule #{rule_id} to: {new_rule}")
+                # If this is the rule to update
+                if line_stripped:  # Non-empty line
+                    if rule_count == rule_id:
+                        print(f"Updating rule #{rule_id} to: {new_rule}")
                         new_lines.append(f"{new_rule}\n")
-                        user_rule_count += 1
+                        rule_count += 1
                         continue
-                    user_rule_count += 1
+                    rule_count += 1
                 
                 new_lines.append(line)
             
             # Write back to file
-            with open(RULES_FILE, 'w') as f:
+            with open(rules_path, 'w') as f:
                 f.writelines(new_lines)
             
-            print(f"Successfully updated user rule #{rule_id}")
+            print(f"Successfully updated rule #{rule_id}")
             
             self.send_json_response({'status': 'updated'})
         except Exception as e:
@@ -755,10 +784,129 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
     
     def get_firewall_alerts(self):
         try:
-            # Temporarily disabled; return empty list
-            self.send_json_response({'firewall_alerts': []})
+            # Use the new firewall parser if available
+            if FIREWALL_PARSER_AVAILABLE:
+                parser = FirewallEventParser()
+                events = parser.get_recent_events(count=100)
+                self.send_json_response({'firewall_alerts': events})
+            else:
+                self.send_json_response({'firewall_alerts': []})
         except Exception as e:
+            print(f"Error getting firewall alerts: {e}")
+            import traceback
+            traceback.print_exc()
             self.send_error(500, str(e))
+    
+    def get_firewall_events(self):
+        """Get parsed firewall events"""
+        try:
+            if not FIREWALL_PARSER_AVAILABLE:
+                self.send_json_response({
+                    'events': [], 
+                    'stats': {'total_events': 0, 'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'by_type': {}},
+                    'error': 'Firewall parser not available. Build it with: cd firewall && make'
+                })
+                return
+            
+            try:
+                parser = FirewallEventParser()
+            except Exception as init_error:
+                self.send_json_response({
+                    'events': [], 
+                    'stats': {'total_events': 0, 'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'by_type': {}},
+                    'error': f'Parser initialization failed: {init_error}. Build library: cd firewall && make'
+                })
+                return
+            
+            # Get query parameters
+            query_params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            count = int(query_params.get('count', [50])[0])
+            severity_filter = query_params.get('severity', [None])[0]
+            
+            if severity_filter == 'critical':
+                events = parser.get_critical_events()
+            else:
+                events = parser.get_recent_events(count=count)
+            
+            stats = parser.get_stats()
+            
+            self.send_json_response({
+                'events': events,
+                'stats': stats,
+                'total': len(events)
+            })
+        except Exception as e:
+            print(f"Error getting firewall events: {e}")
+            import traceback
+            traceback.print_exc()
+            self.send_json_response({
+                'events': [], 
+                'stats': {'total_events': 0, 'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'by_type': {}},
+                'error': str(e)
+            }, status=500)
+    
+    def stream_firewall_events(self):
+        """Stream firewall events using Server-Sent Events"""
+        try:
+            if not FIREWALL_PARSER_AVAILABLE:
+                self.send_error(503, "Firewall parser not available")
+                return
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/event-stream')
+            self.send_header('Cache-Control', 'no-cache')
+            self.send_header('Connection', 'keep-alive')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            parser = FirewallEventParser()
+            log_path = parser.log_file
+            
+            # Ensure log file exists
+            os.makedirs(os.path.dirname(log_path), exist_ok=True)
+            if not os.path.exists(log_path):
+                open(log_path, 'a').close()
+            
+            last_position = 0
+            if os.path.exists(log_path):
+                last_position = os.path.getsize(log_path)
+            
+            while True:
+                try:
+                    if os.path.exists(log_path):
+                        current_size = os.path.getsize(log_path)
+                        if current_size > last_position:
+                            # New data available, read new lines
+                            with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                f.seek(last_position)
+                                new_lines = f.readlines()
+                                last_position = current_size
+                                
+                                # Parse new lines for firewall events
+                                for line in new_lines:
+                                    event = parser.parse_log_line(line)
+                                    if event:
+                                        event_json = json.dumps(event)
+                                        msg = f"data: {event_json}\n\n"
+                                        try:
+                                            self.wfile.write(msg.encode('utf-8'))
+                                            self.wfile.flush()
+                                        except BrokenPipeError:
+                                            return
+                    
+                    time.sleep(1)  # Check every second
+                except BrokenPipeError:
+                    break
+                except Exception as e:
+                    print(f"Error in firewall event stream: {e}")
+                    time.sleep(2)
+                    
+        except Exception as e:
+            print(f"Error setting up firewall event stream: {e}")
+            try:
+                self.send_error(500, str(e))
+            except:
+                pass
 
 def signal_handler(sig, frame):
     print('\nShutting down web server...')
@@ -821,6 +969,14 @@ if __name__ == '__main__':
         print(f"Gemini AI Integration: ENABLED")
         print(f"Rule Management: ENABLED")
         print(f"Monitoring: Ready")
+        
+        # Show sudo requirement notice
+        if sys.platform != 'win32' and os.geteuid() != 0:
+            print(f"{'='*60}")
+            print("⚠️  NOTE: Packet capture requires sudo privileges")
+            print("   You'll be prompted for password when starting engine")
+            print("   Or run this script with: sudo python3 web_server_complete.py")
+        
         print(f"{'='*60}")
         print("Press Ctrl+C to stop\n")
         

@@ -2,7 +2,7 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -I./include -g -Wall -Wextra -std=c99
-LDFLAGS = -lfl -lpcap -lcurl -ljson-c -lm
+LDFLAGS = -lfl -lpcap -lm
 
 # Directories
 SRC_DIR = src
@@ -24,7 +24,7 @@ OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(filter %.c, $(C_OBJS))) \
 # Generated files
 GENERATED_FILES = $(SRC_DIR)/lex.yy.c $(SRC_DIR)/parser.tab.c include/parser.h
 
-.PHONY: all clean install uninstall test
+.PHONY: all clean install uninstall
 
 # Default target
 all: $(TARGET)
@@ -95,16 +95,6 @@ uninstall:
 	rm -f /usr/local/bin/ids_engine
 	@echo "Uninstallation complete."
 
-# Test the parser with sample rules
-test: $(TARGET)
-	@echo "Testing parser with sample rules..."
-	@if [ -f rules/local.rules ]; then \
-		echo "Rules file found, testing parser..."; \
-		./$(TARGET) --help; \
-	else \
-		echo "No rules file found. Please create rules/local.rules first."; \
-	fi
-
 # Show help
 help:
 	@echo "IDS DSL Engine Makefile"
@@ -115,19 +105,9 @@ help:
 	@echo "  clean     - Remove all build artifacts"
 	@echo "  install   - Install the binary to /usr/local/bin"
 	@echo "  uninstall - Remove the binary from /usr/local/bin"
-	@echo "  test      - Test the parser with sample rules"
 	@echo "  help      - Show this help message"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make              # Build the project"
 	@echo "  make clean        # Clean build artifacts"
 	@echo "  make install      # Install (requires root)"
-	@echo "  make test         # Test the parser"
-
-# Debug build
-debug: CFLAGS += -DDEBUG -O0
-debug: $(TARGET)
-
-# Release build
-release: CFLAGS += -O2 -DNDEBUG
-release: clean $(TARGET)
