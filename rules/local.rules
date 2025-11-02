@@ -10,127 +10,197 @@
 # Cross-Site Scripting (XSS) Detection
 
 # Directory Traversal Attacks
-alert tcp any any -> any 80 (msg:"Directory Traversal - Unix Style"; content:"../"; priority:2)
-alert tcp any any -> any 80 (msg:"Directory Traversal - Windows Style"; content:"..\\"; priority:2)
-alert tcp any any -> any 80 (msg:"Directory Traversal - Encoded"; content:"%2e%2e%2f"; priority:2)
-alert tcp any any -> any 80 (msg:"Directory Traversal - Double Encoded"; content:"%252e%252e%252f"; priority:2)
-alert tcp any any -> any 80 (msg:"Directory Traversal - Null Byte"; content:"%00"; priority:2)
+# Test: curl "http://<WINDOWS-IP>/../../etc/passwd" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Directory Traversal - Unix Style"; content:"../"; priority:2)
+# Test: curl "http://<WINDOWS-IP>/..\\..\\windows\\system32" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Directory Traversal - Windows Style"; content:"..\\"; priority:2)
+# Test: curl "http://<WINDOWS-IP>/%2e%2e%2fetc/passwd" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Directory Traversal - Encoded"; content:"%2e%2e%2f"; priority:2)
+# Test: curl "http://<WINDOWS-IP>/%252e%252e%252fetc/passwd" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Directory Traversal - Double Encoded"; content:"%252e%252e%252f"; priority:2)
+# Test: curl "http://<WINDOWS-IP>/file%00.txt" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Directory Traversal - Null Byte"; content:"%00"; priority:2)
 
 # Command Injection Detection
-alert tcp any any -> any 80 (msg:"Command Injection - Pipe"; content:"|"; priority:1)
-alert tcp any any -> any 80 (msg:"Command Injection - Semicolon"; content:";"; priority:1)
-alert tcp any any -> any 80 (msg:"Command Injection - Logical AND"; content:"&&"; priority:1)
-alert tcp any any -> any 80 (msg:"Command Injection - Logical OR"; content:"||"; priority:1)
-alert tcp any any -> any 80 (msg:"Command Injection - Backtick"; content:"`"; priority:1)
-alert tcp any any -> any 80 (msg:"Command Injection - Dollar Sign"; content:"$("; priority:1)
-alert tcp any any -> any 80 (msg:"Command Injection - Newline"; content:"%0a"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?cmd=test|whoami" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Command Injection - Pipe"; content:"|"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?cmd=test;whoami" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Command Injection - Semicolon"; content:";"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?cmd=test&&whoami" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Command Injection - Logical AND"; content:"&&"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?cmd=test||whoami" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Command Injection - Logical OR"; content:"||"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?cmd=`whoami`" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Command Injection - Backtick"; content:"`"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?cmd=$(whoami)" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Command Injection - Dollar Sign"; content:"$("; priority:1)
+# Test: curl "http://<WINDOWS-IP>?cmd=test%0awhoami" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Command Injection - Newline"; content:"%0a"; priority:1)
 
 # Malicious File Upload Detection
-alert tcp any any -> any 80 (msg:"Malicious File Upload - Executable"; content:".exe"; priority:2)
-alert tcp any any -> any 80 (msg:"Malicious File Upload - PHP Shell"; content:".php"; priority:2)
-alert tcp any any -> any 80 (msg:"Malicious File Upload - ASP Shell"; content:".asp"; priority:2)
-alert tcp any any -> any 80 (msg:"Malicious File Upload - JSP Shell"; content:".jsp"; priority:2)
-alert tcp any any -> any 80 (msg:"Malicious File Upload - Python Script"; content:".py"; priority:2)
-alert tcp any any -> any 80 (msg:"Malicious File Upload - Perl Script"; content:".pl"; priority:2)
-alert tcp any any -> any 80 (msg:"Malicious File Upload - Batch File"; content:".bat"; priority:2)
-alert tcp any any -> any 80 (msg:"Malicious File Upload - Shell Script"; content:".sh"; priority:2)
+# Test: curl -X POST "http://<WINDOWS-IP>/upload" -F "file=@test.exe" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Malicious File Upload - Executable"; content:".exe"; priority:2)
+# Test: curl -X POST "http://<WINDOWS-IP>/upload" -F "file=@shell.php" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Malicious File Upload - PHP Shell"; content:".php"; priority:2)
+# Test: curl -X POST "http://<WINDOWS-IP>/upload" -F "file=@shell.asp" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Malicious File Upload - ASP Shell"; content:".asp"; priority:2)
+# Test: curl -X POST "http://<WINDOWS-IP>/upload" -F "file=@shell.jsp" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Malicious File Upload - JSP Shell"; content:".jsp"; priority:2)
+# Test: curl -X POST "http://<WINDOWS-IP>/upload" -F "file=@script.py" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Malicious File Upload - Python Script"; content:".py"; priority:2)
+# Test: curl -X POST "http://<WINDOWS-IP>/upload" -F "file=@script.pl" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Malicious File Upload - Perl Script"; content:".pl"; priority:2)
+# Test: curl -X POST "http://<WINDOWS-IP>/upload" -F "file=@script.bat" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Malicious File Upload - Batch File"; content:".bat"; priority:2)
+# Test: curl -X POST "http://<WINDOWS-IP>/upload" -F "file=@script.sh" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Malicious File Upload - Shell Script"; content:".sh"; priority:2)
 
 # =============================================================================
 # NETWORK SECURITY RULES
 # =============================================================================
 
 # Port Scan Detection
+# Test: Run nmap -sS <WINDOWS-IP> from another computer (SYN scan)
 alert tcp any any -> any any (msg:"Port Scan - SYN Scan"; content:"SYN"; priority:3)
+# Test: Run nmap -sF <WINDOWS-IP> from another computer (FIN scan)
 alert tcp any any -> any any (msg:"Port Scan - FIN Scan"; content:"FIN"; priority:3)
+# Test: Run nmap -sX <WINDOWS-IP> from another computer (XMAS scan)
 alert tcp any any -> any any (msg:"Port Scan - XMAS Scan"; content:"FIN,PSH,URG"; priority:3)
+# Test: Run nmap -sN <WINDOWS-IP> from another computer (NULL scan)
 alert tcp any any -> any any (msg:"Port Scan - NULL Scan"; content:"NULL"; priority:3)
+# Test: Run nmap -sA <WINDOWS-IP> from another computer (ACK scan)
 alert tcp any any -> any any (msg:"Port Scan - ACK Scan"; content:"ACK"; priority:3)
 
 # ICMP Attacks
-alert icmp any any -> any any (msg:"ICMP Flood Attack"; priority:4)
-alert icmp any any -> any any (msg:"ICMP Ping of Death"; priority:1)
-alert icmp any any -> any any (msg:"ICMP Smurf Attack"; priority:1)
-alert icmp any any -> any any (msg:"ICMP Traceroute"; priority:5)
+# Test: ping -f <WINDOWS-IP> from another computer (flood ping - use with caution)
+alert icmp any any -> any any (msg:"Incoming ICMP Flood Attack"; priority:4)
+# Test: ping -s 65507 <WINDOWS-IP> from another computer (oversized ping packet)
+alert icmp any any -> any any (msg:"Incoming ICMP Ping of Death"; priority:1)
+# Test: ping <WINDOWS-IP> with spoofed broadcast source from another computer
+alert icmp any any -> any any (msg:"Incoming ICMP Smurf Attack"; priority:1)
+# Test: traceroute <WINDOWS-IP> from another computer
+alert icmp any any -> any any (msg:"Incoming ICMP Traceroute"; priority:5)
 
 # =============================================================================
 # AUTHENTICATION ATTACKS
 # =============================================================================
 
 # Brute Force Attacks
-alert tcp any any -> any 22 (msg:"SSH Brute Force Attack"; priority:3)
-alert tcp any any -> any 23 (msg:"Telnet Brute Force Attack"; priority:3)
-alert tcp any any -> any 21 (msg:"FTP Brute Force Attack"; priority:3)
-alert tcp any any -> any 25 (msg:"SMTP Brute Force Attack"; priority:3)
-alert tcp any any -> any 110 (msg:"POP3 Brute Force Attack"; priority:3)
-alert tcp any any -> any 143 (msg:"IMAP Brute Force Attack"; priority:3)
-alert tcp any any -> any 3389 (msg:"RDP Brute Force Attack"; priority:3)
-alert tcp any any -> any 5900 (msg:"VNC Brute Force Attack"; priority:3)
+# Test: ssh <WINDOWS-IP> or ssh user@<WINDOWS-IP> from another computer
+alert tcp any any -> any 22 (msg:"Incoming SSH Brute Force Attack"; priority:3)
+# Test: telnet <WINDOWS-IP> 23 from another computer
+alert tcp any any -> any 23 (msg:"Incoming Telnet Brute Force Attack"; priority:3)
+# Test: ftp <WINDOWS-IP> or telnet <WINDOWS-IP> 21 from another computer
+alert tcp any any -> any 21 (msg:"Incoming FTP Brute Force Attack"; priority:3)
+# Test: telnet <WINDOWS-IP> 25 from another computer
+alert tcp any any -> any 25 (msg:"Incoming SMTP Brute Force Attack"; priority:3)
+# Test: telnet <WINDOWS-IP> 110 from another computer
+alert tcp any any -> any 110 (msg:"Incoming POP3 Brute Force Attack"; priority:3)
+# Test: telnet <WINDOWS-IP> 143 from another computer
+alert tcp any any -> any 143 (msg:"Incoming IMAP Brute Force Attack"; priority:3)
+# Test: telnet <WINDOWS-IP> 3389 from another computer (Windows RDP)
+alert tcp any any -> any 3389 (msg:"Incoming RDP Brute Force Attack"; priority:3)
+# Test: telnet <WINDOWS-IP> 5900 from another computer (VNC)
+alert tcp any any -> any 5900 (msg:"Incoming VNC Brute Force Attack"; priority:3)
 
 # =============================================================================
 # MALWARE AND EXPLOIT DETECTION
 # =============================================================================
 
 # Common Exploit Patterns
-alert tcp any any -> any 80 (msg:"Buffer Overflow Attempt"; content:"AAAAAAAA"; priority:1)
-alert tcp any any -> any 80 (msg:"Format String Attack"; content:"%n%n%n%n"; priority:1)
-alert tcp any any -> any 80 (msg:"Integer Overflow Attempt"; content:"2147483647"; priority:2)
-alert tcp any any -> any 80 (msg:"Path Traversal Exploit"; content:"/etc/passwd"; priority:1)
-alert tcp any any -> any 80 (msg:"Path Traversal Exploit"; content:"/etc/shadow"; priority:1)
-alert tcp any any -> any 80 (msg:"Path Traversal Exploit"; content:"boot.ini"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?data=AAAAAAAAAAAA" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Buffer Overflow Attempt"; content:"AAAAAAAA"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?format=%n%n%n%n" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Format String Attack"; content:"%n%n%n%n"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?size=2147483647" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Integer Overflow Attempt"; content:"2147483647"; priority:2)
+# Test: curl "http://<WINDOWS-IP>/etc/passwd" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Path Traversal Exploit"; content:"/etc/passwd"; priority:1)
+# Test: curl "http://<WINDOWS-IP>/etc/shadow" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Path Traversal Exploit"; content:"/etc/shadow"; priority:1)
+# Test: curl "http://<WINDOWS-IP>/boot.ini" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Path Traversal Exploit"; content:"boot.ini"; priority:1)
 
 # Web Shell Detection
-alert tcp any any -> any 80 (msg:"Web Shell - C99"; content:"c99shell"; priority:1)
-alert tcp any any -> any 80 (msg:"Web Shell - R57"; content:"r57shell"; priority:1)
-alert tcp any any -> any 80 (msg:"Web Shell - WSO"; content:"wso_shell"; priority:1)
-alert tcp any any -> any 80 (msg:"Web Shell - B374K"; content:"b374k"; priority:1)
-alert tcp any any -> any 80 (msg:"Web Shell - China Chopper"; content:"chopper"; priority:1)
+# Test: curl "http://<WINDOWS-IP>/c99shell.php" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Web Shell - C99"; content:"c99shell"; priority:1)
+# Test: curl "http://<WINDOWS-IP>/r57shell.php" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Web Shell - R57"; content:"r57shell"; priority:1)
+# Test: curl "http://<WINDOWS-IP>/wso_shell.php" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Web Shell - WSO"; content:"wso_shell"; priority:1)
+# Test: curl "http://<WINDOWS-IP>/b374k.php" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Web Shell - B374K"; content:"b374k"; priority:1)
+# Test: curl "http://<WINDOWS-IP>/chopper.jsp" from another computer
+alert tcp any any -> any 80 (msg:"Incoming Web Shell - China Chopper"; content:"chopper"; priority:1)
 
 # =============================================================================
 # PROTOCOL-SPECIFIC ATTACKS
 # =============================================================================
 
 # HTTP Attacks
-alert tcp any any -> any 80 (msg:"HTTP Method Override"; content:"X-HTTP-Method-Override"; priority:2)
-alert tcp any any -> any 80 (msg:"HTTP Host Header Injection"; content:"Host: evil.com"; priority:2)
-alert tcp any any -> any 80 (msg:"HTTP Request Smuggling"; content:"Transfer-Encoding: chunked"; priority:1)
-alert tcp any any -> any 80 (msg:"HTTP Response Splitting"; content:"%0d%0a"; priority:2)
+# Test: curl -H "X-HTTP-Method-Override: DELETE" "http://<WINDOWS-IP>" from another computer
+alert tcp any any -> any 80 (msg:"Incoming HTTP Method Override"; content:"X-HTTP-Method-Override"; priority:2)
+# Test: curl -H "Host: evil.com" "http://<WINDOWS-IP>" from another computer
+alert tcp any any -> any 80 (msg:"Incoming HTTP Host Header Injection"; content:"Host: evil.com"; priority:2)
+# Test: curl -H "Transfer-Encoding: chunked" "http://<WINDOWS-IP>" from another computer
+alert tcp any any -> any 80 (msg:"Incoming HTTP Request Smuggling"; content:"Transfer-Encoding: chunked"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?param=test%0d%0aHeader:value" from another computer
+alert tcp any any -> any 80 (msg:"Incoming HTTP Response Splitting"; content:"%0d%0a"; priority:2)
 
 # DNS Attacks
-alert udp any any -> any 53 (msg:"DNS Amplification Attack"; priority:2)
-alert udp any any -> any 53 (msg:"DNS Cache Poisoning"; priority:1)
-alert udp any any -> any 53 (msg:"DNS Tunneling"; priority:3)
+# Test: dig @<WINDOWS-IP> ANY isc.org from another computer (amplification query)
+alert udp any any -> any 53 (msg:"Incoming DNS Amplification Attack"; priority:2)
+# Test: nslookup -type=ANY malicious.com <WINDOWS-IP> from another computer
+alert udp any any -> any 53 (msg:"Incoming DNS Cache Poisoning"; priority:1)
+# Test: Send DNS queries with unusual TXT records from another computer
+alert udp any any -> any 53 (msg:"Incoming DNS Tunneling"; priority:3)
 
 # =============================================================================
 # TRAFFIC MONITORING RULES
 # =============================================================================
 
 # General Traffic Monitoring
-alert tcp any any -> any 443 (msg:"HTTPS Traffic"; priority:5)
-alert udp any any -> any 53 (msg:"DNS Query"; priority:5)
-alert tcp any any -> any 80 (msg:"HTTP Traffic"; priority:5)
-alert tcp any any -> any 21 (msg:"FTP Traffic"; priority:5)
-alert tcp any any -> any 25 (msg:"SMTP Traffic"; priority:5)
-alert tcp any any -> any 110 (msg:"POP3 Traffic"; priority:5)
-alert tcp any any -> any 143 (msg:"IMAP Traffic"; priority:5)
-alert tcp any any -> any 993 (msg:"IMAPS Traffic"; priority:5)
-alert tcp any any -> any 995 (msg:"POP3S Traffic"; priority:5)
-alert tcp any any -> any 587 (msg:"SMTP Submission"; priority:5)
-alert tcp any any -> any 465 (msg:"SMTPS Traffic"; priority:5)
+# Test: curl https://<WINDOWS-IP> from another computer
+alert tcp any any -> any 443 (msg:"Incoming HTTPS Traffic"; priority:5)
+# Test: nslookup google.com <WINDOWS-IP> from another computer
+alert udp any any -> any 53 (msg:"Incoming DNS Query"; priority:5)
+# Test: curl http://<WINDOWS-IP> from another computer
+alert tcp any any -> any 80 (msg:"Incoming HTTP Traffic"; priority:5)
+# Test: ftp <WINDOWS-IP> or telnet <WINDOWS-IP> 21 from another computer
+alert tcp any any -> any 21 (msg:"Incoming FTP Traffic"; priority:5)
+# Test: telnet <WINDOWS-IP> 25 from another computer
+alert tcp any any -> any 25 (msg:"Incoming SMTP Traffic"; priority:5)
+# Test: telnet <WINDOWS-IP> 110 from another computer
+alert tcp any any -> any 110 (msg:"Incoming POP3 Traffic"; priority:5)
+# Test: telnet <WINDOWS-IP> 143 from another computer
+alert tcp any any -> any 143 (msg:"Incoming IMAP Traffic"; priority:5)
+# Test: openssl s_client -connect <WINDOWS-IP>:993 from another computer
+alert tcp any any -> any 993 (msg:"Incoming IMAPS Traffic"; priority:5)
+# Test: openssl s_client -connect <WINDOWS-IP>:995 from another computer
+alert tcp any any -> any 995 (msg:"Incoming POP3S Traffic"; priority:5)
+# Test: telnet <WINDOWS-IP> 587 from another computer
+alert tcp any any -> any 587 (msg:"Incoming SMTP Submission"; priority:5)
+# Test: openssl s_client -connect <WINDOWS-IP>:465 from another computer
+alert tcp any any -> any 465 (msg:"Incoming SMTPS Traffic"; priority:5)
 
 # =============================================================================
 # COMPREHENSIVE LOGGING
 # =============================================================================
 
 # Log all IP traffic for comprehensive monitoring
+# Test: Any network activity to <WINDOWS-IP> will be logged (ping, HTTP, SSH, etc.)
 log ip any any -> any any (msg:"All IP Traffic"; priority:5)
 
 # Log all TCP traffic
+# Test: curl http://<WINDOWS-IP> or ssh <WINDOWS-IP> from another computer
 log tcp any any -> any any (msg:"All TCP Traffic"; priority:5)
 
 # Log all UDP traffic
+# Test: nslookup google.com <WINDOWS-IP> from another computer
 log udp any any -> any any (msg:"All UDP Traffic"; priority:5)
 
 # Log all ICMP traffic
+# Test: ping <WINDOWS-IP> from another computer
 log icmp any any -> any any (msg:"All ICMP Traffic"; priority:5)
 
 # =============================================================================
@@ -138,46 +208,77 @@ log icmp any any -> any any (msg:"All ICMP Traffic"; priority:5)
 # =============================================================================
 
 # Firewall Management Detection
+# Test: ssh <WINDOWS-IP> then run "ufw status" (detected in SSH session)
 alert tcp any any -> any 22 (msg:"Firewall Management via SSH"; content:"ufw"; priority:2)
+# Test: ssh <WINDOWS-IP> then run "iptables -L" (detected in SSH session)
 alert tcp any any -> any 22 (msg:"Firewall Management via SSH"; content:"iptables"; priority:2)
+# Test: ssh <WINDOWS-IP> then run "firewall-cmd --list-all" (detected in SSH session)
 alert tcp any any -> any 22 (msg:"Firewall Management via SSH"; content:"firewall-cmd"; priority:2)
 
 # System Administration Commands
+# Test: ssh <WINDOWS-IP> then run "chmod 777 /tmp/test" (detected in SSH session)
 alert tcp any any -> any 22 (msg:"System Admin Command"; content:"chmod 777"; priority:1)
+# Test: ssh <WINDOWS-IP> then run "rm -rf /tmp/test" (detected in SSH session)
 alert tcp any any -> any 22 (msg:"System Admin Command"; content:"rm -rf"; priority:1)
+# Test: ssh <WINDOWS-IP> then run "dd if=/dev/zero of=/dev/sda" (detected in SSH session)
 alert tcp any any -> any 22 (msg:"System Admin Command"; content:"dd if=/dev/zero"; priority:1)
 
 # Network Scanning Detection
+# Test: Run nmap <WINDOWS-IP> from another computer (scan packets detected)
 alert tcp any any -> any any (msg:"Network Scanner"; content:"nmap"; priority:3)
+# Test: Run masscan -p80 <WINDOWS-IP> from another computer
 alert tcp any any -> any any (msg:"Network Scanner"; content:"masscan"; priority:3)
+# Test: Run zmap -p 80 <WINDOWS-IP> from another computer
 alert tcp any any -> any any (msg:"Network Scanner"; content:"zmap"; priority:3)
 
 # Privilege Escalation Attempts
+# Test: ssh <WINDOWS-IP> then run "sudo su" (detected in SSH session)
 alert tcp any any -> any 22 (msg:"Privilege Escalation"; content:"sudo su"; priority:2)
+# Test: ssh <WINDOWS-IP> then run "su -" (detected in SSH session)
 alert tcp any any -> any 22 (msg:"Privilege Escalation"; content:"su -"; priority:2)
+# Test: ssh <WINDOWS-IP> then run "sudo -i" (detected in SSH session)
 alert tcp any any -> any 22 (msg:"Privilege Escalation"; content:"sudo -i"; priority:2)
 
 # File System Manipulation
+# Test: ssh <WINDOWS-IP> then run "mkfs.ext4 /dev/sda1" (detected in SSH session)
 alert tcp any any -> any 22 (msg:"File System Manipulation"; content:"mkfs"; priority:1)
+# Test: ssh <WINDOWS-IP> then run "format C:" or "mkfs" (detected in SSH session)
 alert tcp any any -> any 22 (msg:"File System Manipulation"; content:"format"; priority:1)
+# Test: ssh <WINDOWS-IP> then run "fdisk /dev/sda" (detected in SSH session)
 alert tcp any any -> any 22 (msg:"File System Manipulation"; content:"fdisk"; priority:1)
 
 # =============================================================================
 # USER-ADDED RULES (Added via Web Interface)
 # =============================================================================
+# Test: curl "http://<WINDOWS-IP>?param=test" from another computer
 alert tcp any any -> any 80 (msg:"Detect SQL injection attempts"; content:"test"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?param=test" from another computer
 alert tcp any any -> any 80 (msg:"Monitor for XSS attacks"; content:"test"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?param=test" from another computer
 alert tcp any any -> any 80 (msg:"Detect SQL injection attempts"; content:"test"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?param=test" from another computer
 alert tcp any any -> any 80 (msg:"Detect SQL injection attempts"; content:"test"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?param=test" from another computer
 alert tcp any any -> any 80 (msg:"Monitor directory traversal attempts"; content:"test"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?param=test" from another computer
 alert tcp any any -> any 80 (msg:"Alert on port scanning activities"; content:"test"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?param=test" from another computer
 alert tcp any any -> any 80 (msg:"Alert on port scanning activities"; content:"test"; priority:1)
+# Test: curl "http://<WINDOWS-IP>/../../etc/passwd" from another computer
 alert tcp any any -> any 80 (msg:"Directory Traversal - Unix Style"; content:"../"; priority:2)
+# Test: curl "http://<WINDOWS-IP>/..\\..\\windows\\system32" from another computer
 alert tcp any any -> any 80 (msg:"Directory Traversal - Windows Style"; content:"..\\"; priority:2)
+# Test: curl "http://<WINDOWS-IP>?cmd=test;whoami" from another computer
 alert tcp any any -> any 80 (msg:"Command Injection - Semicolon"; content:";"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?cmd=test&&whoami" from another computer
 alert tcp any any -> any 80 (msg:"Command Injection - Logical AND"; content:"&&"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?cmd=test||whoami" from another computer
 alert tcp any any -> any 80 (msg:"Command Injection - Logical OR"; content:"||"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?cmd=`whoami`" from another computer
 alert tcp any any -> any 80 (msg:"Command Injection - Backtick"; content:"`"; priority:1)
+# Test: curl "http://<WINDOWS-IP>?cmd=$(whoami)" from another computer
 alert tcp any any -> any 80 (msg:"Command Injection - Dollar Sign"; content:"$("; priority:1)
+# Test: curl -X POST "http://<WINDOWS-IP>/upload" -F "file=@shell.asp" from another computer
 alert tcp any any -> any 80 (msg:"Malicious File Upload - ASP Shell"; content:".asp"; priority:2)
+# Test: curl -X POST "http://<WINDOWS-IP>/upload" -F "file=@shell.php" from another computer
 alert tcp any any -> any 80 (msg:"Malicious File Upload - PHP Shell"; content:".php"; priority:2)

@@ -1,9 +1,9 @@
-[2025-11-03 00:14:02] ALERT: Incoming DNS Query to Host | 172.17.1.152:64821 -> 8.8.8.8:53 | Protocol: UDP | Priority: 5
-[2025-11-03 00:14:09] ALERT: Incoming DNS Query to Host | 172.17.1.152:62229 -> 8.8.8.8:53 | Protocol: UDP | Priority: 5
-[2025-11-03 00:14:09] ALERT: Incoming DNS Query to Host | 172.17.1.152:62138 -> 8.8.8.8:53 | Protocol: UDP | Priority: 5
-[2025-11-03 00:14:37] ALERT: Incoming DNS Query to Host | 172.17.213.107:49859 -> 172.17.1.152:53 | Protocol: UDP | Priority: 5
-[2025-11-03 00:14:42] ALERT: Incoming DNS Query to Host | 172.17.213.107:49859 -> 172.17.1.152:53 | Protocol: UDP | Priority: 5
-[2025-11-03 00:14:47] ALERT: Incoming DNS Query to Host | 172.17.213.107:49859 -> 172.17.1.152:53 | Protocol: UDP | Priority: 5
-[2025-11-03 00:15:02] ALERT: Incoming DNS Query to Host | 172.17.1.152:65139 -> 8.8.8.8:53 | Protocol: UDP | Priority: 5
-[2025-11-03 00:15:05] ALERT: Incoming DNS Query to Host | 172.17.1.152:50250 -> 8.8.8.8:53 | Protocol: UDP | Priority: 5
-[2025-11-03 00:15:05] ALERT: Incoming DNS Query to Host | 172.17.1.152:59374 -> 8.8.8.8:53 | Protocol: UDP | Priority: 5
+[2025-11-03 03:28:25] ALERT: Incoming HTTPS Traffic | 172.17.213.107:65209 -> 172.17.1.152:443 | Protocol: TCP | Priority: 5
+[2025-11-03 03:28:26] ALERT: Incoming HTTPS Traffic | 172.17.213.107:65209 -> 172.17.1.152:443 | Protocol: TCP | Priority: 5
+[2025-11-03 03:28:27] ALERT: Incoming HTTPS Traffic | 172.17.213.107:65209 -> 172.17.1.152:443 | Protocol: TCP | Priority: 5
+[2025-11-03 03:28:28] ALERT: Incoming HTTPS Traffic | 172.17.213.107:65209 -> 172.17.1.152:443 | Protocol: TCP | Priority: 5
+[2025-11-03 03:28:29] ALERT: Incoming HTTPS Traffic | 172.17.213.107:65209 -> 172.17.1.152:443 | Protocol: TCP | Priority: 5
+[2025-11-03 03:28:30] ALERT: Incoming HTTPS Traffic | 172.17.213.107:65209 -> 172.17.1.152:443 | Protocol: TCP | Priority: 5
+[2025-11-03 03:28:45] ALERT: Incoming DNS Query | 172.17.213.107:59636 -> 172.17.1.152:53 | Protocol: UDP | Priority: 5
+[2025-11-03 03:28:50] ALERT: Incoming DNS Query | 172.17.213.107:59636 -> 172.17.1.152:53 | Protocol: UDP | Priority: 5
+[2025-11-03 03:28:55] ALERT: Incoming DNS Query | 172.17.213.107:59636 -> 172.17.1.152:53 | Protocol: UDP | Priority: 5

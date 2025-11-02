@@ -199,6 +199,10 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
                 print("Handling /api/firewall_events/stream (SSE)")
                 self.stream_firewall_events()
                 return
+            elif parsed_path == '/api/host-ip':
+                print("Handling /api/host-ip request (GET)")
+                self.get_host_ip()
+                return
             else:
                 # Restore original path for file serving
                 self.path = original_path
@@ -233,6 +237,8 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
             self.delete_rule()
         elif parsed_path == '/api/update_rule':
             self.update_rule()
+        elif parsed_path == '/api/host-ip':
+            self.set_host_ip()
         else:
             self.send_error(404)
     
@@ -355,29 +361,45 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error(400, "No text provided")
                 return
             
-            # Call Gemini API
-            prompt = f"""
-            Convert this natural language security rule to IDS DSL syntax:
-            "{natural_language}"
-            
-            The DSL format should be:
-            action protocol source_ip source_port direction dest_ip dest_port (options)
-            
-            Where:
-            - action: alert, log, or pass
-            - protocol: tcp, udp, icmp, or ip
-            - source_ip/dest_ip: any, specific IP, or network range
-            - source_port/dest_port: any or specific port number
-            - direction: -> (unidirectional) or <> (bidirectional)
-            - options: msg:"message", content:"pattern", priority:1-5
-            
-            Examples:
-            - "Detect SQL injection" -> alert tcp any any -> any 80 (msg:"SQL Injection"; content:"' OR 1=1"; priority:1)
-            - "Monitor SSH connections" -> alert tcp any any -> any 22 (msg:"SSH Connection"; priority:3)
-            - "Block malicious files" -> alert tcp any any -> any 80 (msg:"Malicious File"; content:".exe"; priority:2)
-            
-            Return only the DSL rule, nothing else.
-            """
+            # Call Gemini API with improved prompt
+            prompt = f"""Convert this natural language security rule to IDS DSL syntax:
+"{natural_language}"
+
+CRITICAL REQUIREMENTS - You MUST follow this EXACT format:
+
+alert [protocol] [src_ip] [src_port] -> [dst_ip] [dst_port] (msg:"[message]"; priority:[1-5]);
+
+MANDATORY SYNTAX RULES:
+1. MUST end with semicolon (;)
+2. Options MUST be inside parentheses: (msg:"..."; priority:...)
+3. For ICMP rules: ALWAYS use "any any" for BOTH source and destination ports (ICMP doesn't use ports, but parser requires port fields)
+4. For TCP/UDP rules: Use actual port numbers (e.g., 80, 443, 22) or "any"
+5. Direction MUST be "->" (not "<>")
+6. Protocol must be: tcp, udp, icmp, or ip (lowercase)
+7. Use double quotes for msg content: msg:"Your message here"
+8. Priority is a number 1-5 (1=highest, 5=lowest)
+
+EXAMPLES (copy this exact format):
+
+For ICMP Ping:
+alert icmp any any -> any any (msg:"Incoming ICMP Ping Detected"; priority:3);
+
+For HTTP (port 80):
+alert tcp any any -> any 80 (msg:"Incoming HTTP Request to Host"; priority:5);
+
+For SSH (port 22):
+alert tcp any any -> any 22 (msg:"Incoming SSH Connection Attempt"; priority:3);
+
+For DNS (port 53 UDP):
+alert udp any any -> any 53 (msg:"Incoming DNS Query to Host"; priority:5);
+
+For HTTPS (port 443):
+alert tcp any any -> any 443 (msg:"Incoming HTTPS Request to Host"; priority:5);
+
+IMPORTANT: If the request mentions "ICMP", "ping", or "icmp", you MUST use:
+alert icmp any any -> any any (msg:"..."; priority:...);
+
+Return ONLY the complete rule in the exact format above. No explanations, no markdown, just the rule text ending with semicolon."""
             
             payload = {
                 "contents": [{
@@ -391,23 +413,353 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
                 result = response.json()
                 if 'candidates' in result and len(result['candidates']) > 0:
                     dsl_rule = result['candidates'][0]['content']['parts'][0]['text'].strip()
-                    # Clean up the response
-                    dsl_rule = dsl_rule.replace('```', '').replace('dsl', '').strip()
+                    # Clean up the response - remove markdown code blocks
+                    dsl_rule = dsl_rule.replace('```', '').replace('```dsl', '').replace('```plaintext', '').replace('dsl', '').strip()
+                    
+                    # Validate and fix the rule if needed
+                    dsl_rule = self._validate_and_fix_rule(dsl_rule, natural_language)
                 else:
-                    dsl_rule = f'alert tcp any any -> any 80 (msg:"{natural_language}"; content:"test"; priority:1)'
+                    dsl_rule = self._create_fallback_rule(natural_language)
             else:
                 print(f"Gemini API error: {response.status_code}")
-                dsl_rule = f'alert tcp any any -> any 80 (msg:"{natural_language}"; content:"test"; priority:1)'
+                dsl_rule = self._create_fallback_rule(natural_language)
             
-            self.send_json_response({'dsl_rule': dsl_rule})
+            # Check if this rule or similar rule exists in local.rules
+            rule_check_result = self._check_rule_in_local_rules(dsl_rule, natural_language)
+            
+            # If exact match or similar rule with same protocol+port found, use the rule from local.rules instead
+            if rule_check_result['exact_match']:
+                dsl_rule = rule_check_result['exact_match']['rule']
+                print(f"[Gemini] Using existing rule from local.rules (line {rule_check_result['exact_match']['line_number']})")
+            
+            # Return rule with check results
+            response_data = {
+                'dsl_rule': dsl_rule,
+                'exists_in_local': rule_check_result['exists'],
+                'exact_match': rule_check_result['exact_match'],
+                'similar_rules': rule_check_result['similar_rules'],
+                'suggestions': rule_check_result['suggestions'],
+                'test_instruction': rule_check_result.get('test_instruction')
+            }
+            
+            self.send_json_response(response_data)
             
         except Exception as e:
             print(f"Error in convert_rule_with_gemini: {e}")
-            # Fallback to simple conversion
+            import traceback
+            traceback.print_exc()
+            # Fallback to smart conversion based on input
             natural_language = data.get('text', '')
-            dsl_rule = f'alert tcp any any -> any 80 (msg:"{natural_language}"; content:"test"; priority:1)'
+            dsl_rule = self._create_fallback_rule(natural_language)
             
-            self.send_json_response({'dsl_rule': dsl_rule})
+            # Check if rule exists in local.rules
+            rule_check_result = self._check_rule_in_local_rules(dsl_rule, natural_language)
+            
+            # If exact match or similar rule with same protocol+port found, use the rule from local.rules instead
+            if rule_check_result['exact_match']:
+                dsl_rule = rule_check_result['exact_match']['rule']
+                print(f"[Gemini] Using existing rule from local.rules (line {rule_check_result['exact_match']['line_number']})")
+            
+            response_data = {
+                'dsl_rule': dsl_rule,
+                'exists_in_local': rule_check_result['exists'],
+                'exact_match': rule_check_result['exact_match'],
+                'similar_rules': rule_check_result['similar_rules'],
+                'suggestions': rule_check_result['suggestions'],
+                'test_instruction': rule_check_result.get('test_instruction')
+            }
+            
+            self.send_json_response(response_data)
+    
+    def _validate_and_fix_rule(self, rule, natural_language=""):
+        """Validate and auto-fix rule syntax"""
+        import re
+        
+        # Remove any leading/trailing whitespace
+        rule = rule.strip()
+        
+        # Remove markdown code blocks if present
+        rule = re.sub(r'```[a-z]*\n?', '', rule)
+        rule = rule.strip()
+        
+        # Check if it's already valid format
+        valid_pattern = r'^alert\s+(tcp|udp|icmp|ip)\s+'
+        if not re.match(valid_pattern, rule, re.IGNORECASE):
+            # Try to create a proper rule
+            return self._create_fallback_rule(natural_language)
+        
+        # Fix ICMP rules - ensure ports are "any any"
+        if 'icmp' in rule.lower():
+            # Pattern: alert icmp [anything] -> [anything]
+            rule = re.sub(r'alert\s+icmp\s+(\S+)\s+(\S+)\s*->\s*(\S+)\s+(\S+)', 
+                        r'alert icmp any any -> \3 any', rule, flags=re.IGNORECASE)
+            rule = re.sub(r'alert\s+icmp\s+(\S+)\s*->\s*(\S+)', 
+                        r'alert icmp any any -> \2 any', rule, flags=re.IGNORECASE)
+        
+        # Ensure semicolon at end
+        if not rule.endswith(';'):
+            rule = rule.rstrip() + ';'
+        
+        # Ensure parentheses around options
+        if '(' not in rule or ')' not in rule:
+            # Try to add basic options if missing
+            if '(msg:' not in rule.lower():
+                rule = rule.replace(';', ' (msg:"' + natural_language + '"; priority:3);')
+        
+        return rule
+    
+    def _create_fallback_rule(self, natural_language):
+        """Create a fallback rule based on natural language input"""
+        natural_lower = natural_language.lower()
+        
+        # Detect ICMP/ping
+        if 'icmp' in natural_lower or 'ping' in natural_lower:
+            return f'alert icmp any any -> any any (msg:"{natural_language}"; priority:3);'
+        
+        # Detect SSH
+        if 'ssh' in natural_lower:
+            return f'alert tcp any any -> any 22 (msg:"{natural_language}"; priority:3);'
+        
+        # Detect HTTP
+        if 'http' in natural_lower and 'https' not in natural_lower:
+            return f'alert tcp any any -> any 80 (msg:"{natural_language}"; priority:5);'
+        
+        # Detect HTTPS
+        if 'https' in natural_lower:
+            return f'alert tcp any any -> any 443 (msg:"{natural_language}"; priority:5);'
+        
+        # Detect DNS
+        if 'dns' in natural_lower:
+            return f'alert udp any any -> any 53 (msg:"{natural_language}"; priority:5);'
+        
+        # Default to HTTP
+        return f'alert tcp any any -> any 80 (msg:"{natural_language}"; priority:3);'
+    
+    def _check_rule_in_local_rules(self, generated_rule, natural_language):
+        """Check if generated rule exists in local.rules or find similar rules"""
+        import re
+        
+        result = {
+            'exists': False,
+            'exact_match': None,
+            'similar_rules': [],
+            'suggestions': [],
+            'test_instruction': None
+        }
+        
+        try:
+            rules_path = 'rules/local.rules'
+            if not os.path.exists(rules_path):
+                result['suggestions'].append("Rules file not found. The generated rule can be added as a new rule.")
+                return result
+            
+            # Parse the generated rule to extract key components
+            generated_protocol = None
+            generated_port = None
+            generated_msg = None
+            
+            # Extract protocol
+            protocol_match = re.search(r'alert\s+(tcp|udp|icmp|ip)\s+', generated_rule, re.IGNORECASE)
+            if protocol_match:
+                generated_protocol = protocol_match.group(1).lower()
+            
+            # Extract destination port
+            port_match = re.search(r'->\s+\S+\s+(\d+|any)', generated_rule, re.IGNORECASE)
+            if port_match:
+                generated_port = port_match.group(1)
+            
+            # Extract message
+            msg_match = re.search(r'msg:"([^"]+)"', generated_rule)
+            if msg_match:
+                generated_msg = msg_match.group(1).lower()
+            
+            # Extract keywords from natural language
+            natural_lower = natural_language.lower()
+            keywords = set(re.findall(r'\b\w+\b', natural_lower))
+            
+            # Load and compare with local.rules
+            with open(rules_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                rule_count = 0
+                prev_comment = None
+                
+                for line in lines:
+                    line_stripped = line.strip()
+                    
+                    # Check if this is a test instruction comment
+                    if line_stripped.startswith('#') and 'test:' in line_stripped.lower():
+                        prev_comment = line_stripped
+                        continue
+                    
+                    # Skip other comments and empty lines
+                    if line_stripped.startswith('#') or not line_stripped:
+                        if not line_stripped:  # Empty line resets comment
+                            prev_comment = None
+                        continue
+                    
+                    # Check for exact match (normalized comparison - ignore semicolons and whitespace)
+                    rule_normalized = re.sub(r'\s+', ' ', line_stripped).strip().rstrip(';').rstrip()
+                    generated_normalized = re.sub(r'\s+', ' ', generated_rule).strip().rstrip(';').rstrip()
+                    
+                    if rule_normalized.lower() == generated_normalized.lower():
+                        result['exists'] = True
+                        result['exact_match'] = {
+                            'rule': line_stripped.rstrip(';') + ';' if not line_stripped.rstrip().endswith(';') else line_stripped,
+                            'line_number': rule_count + 1
+                        }
+                        result['test_instruction'] = prev_comment if prev_comment else None
+                        result['suggestions'].append(f"✅ Exact match found in local.rules (line {rule_count + 1}). You can add this existing rule to active.rules.")
+                        return result
+                    
+                    # Extract existing rule components first (needed for semantic matching)
+                    existing_protocol = None
+                    existing_port = None
+                    existing_msg = None
+                    
+                    proto_match = re.search(r'alert\s+(tcp|udp|icmp|ip)\s+', line_stripped, re.IGNORECASE)
+                    if proto_match:
+                        existing_protocol = proto_match.group(1).lower()
+                    
+                    port_match = re.search(r'->\s+\S+\s+(\d+|any)', line_stripped, re.IGNORECASE)
+                    if port_match:
+                        existing_port = port_match.group(1)
+                    
+                    msg_match = re.search(r'msg:"([^"]+)"', line_stripped)
+                    if msg_match:
+                        existing_msg = msg_match.group(1).lower()
+                    
+                    # Check for semantic match: same protocol, port, and similar message meaning
+                    # Normalize message text for comparison (remove "Incoming", "Request to Host", etc.)
+                    rule_msg_normalized = existing_msg.lower() if existing_msg else ""
+                    generated_msg_normalized = generated_msg.lower() if generated_msg else ""
+                    
+                    # Remove common prefixes/suffixes for better matching
+                    prefixes_to_remove = ["incoming ", "incoming", "detect ", "detect", "detecting ", "detecting"]
+                    for prefix in prefixes_to_remove:
+                        if rule_msg_normalized.startswith(prefix):
+                            rule_msg_normalized = rule_msg_normalized[len(prefix):].strip()
+                        if generated_msg_normalized.startswith(prefix):
+                            generated_msg_normalized = generated_msg_normalized[len(prefix):].strip()
+                    
+                    suffixes_to_remove = [" to host", " to host.", " detected", " detected.", " request", " request.", 
+                                          " connection attempt", " connection", " query", " query to host"]
+                    for suffix in suffixes_to_remove:
+                        if rule_msg_normalized.endswith(suffix):
+                            rule_msg_normalized = rule_msg_normalized[:-len(suffix)].strip()
+                        if generated_msg_normalized.endswith(suffix):
+                            generated_msg_normalized = generated_msg_normalized[:-len(suffix)].strip()
+                    
+                    # Extract core keywords (protocol names and key terms)
+                    rule_keywords = set(re.findall(r'\b\w+\b', rule_msg_normalized))
+                    generated_keywords = set(re.findall(r'\b\w+\b', generated_msg_normalized))
+                    
+                    # Check if protocol, port match
+                    protocol_match = generated_protocol and existing_protocol and generated_protocol == existing_protocol
+                    port_match = generated_port and existing_port and generated_port == existing_port
+                    msg_similar = False
+                    
+                    if protocol_match and port_match:
+                        # If protocol and port match, check message similarity
+                        # Core keywords that indicate same purpose
+                        core_keywords = {'http', 'https', 'ssh', 'dns', 'icmp', 'ping', 'traffic', 'connection', 
+                                        'query', 'attack', 'request', 'brute', 'force', 'icmp', 'udp', 'tcp'}
+                        
+                        # Check keyword overlap
+                        if rule_keywords and generated_keywords:
+                            overlap = rule_keywords.intersection(generated_keywords)
+                            # Match if core protocol keywords overlap OR if messages are very similar
+                            if overlap.intersection(core_keywords):
+                                msg_similar = True
+                            elif len(overlap) >= 2:  # At least 2 words match
+                                msg_similar = True
+                        
+                        # Special case: if protocol+port match and no conflicting keywords, assume match
+                        # (e.g., "HTTPS Traffic" matches "Incoming HTTPS Request to Host")
+                        if not msg_similar:
+                            # Check if both messages contain the protocol name
+                            protocol_in_rule_msg = generated_protocol in rule_msg_normalized or generated_protocol in existing_msg.lower()
+                            protocol_in_gen_msg = generated_protocol in generated_msg_normalized or generated_protocol in generated_msg.lower()
+                            if protocol_in_rule_msg and protocol_in_gen_msg:
+                                msg_similar = True
+                    
+                    # If protocol, port, and message are similar, treat as match
+                    if protocol_match and port_match and msg_similar:
+                        result['exists'] = True
+                        result['exact_match'] = {
+                            'rule': line_stripped.rstrip(';') + ';' if not line_stripped.rstrip().endswith(';') else line_stripped,
+                            'line_number': rule_count + 1
+                        }
+                        result['test_instruction'] = prev_comment if prev_comment else None
+                        result['suggestions'].append(f"✅ Matching rule found in local.rules (line {rule_count + 1}): Same protocol ({existing_protocol}), port ({existing_port}), and similar purpose.")
+                        # Don't return yet - continue to find exact text match if exists
+                    
+                    # Extract existing rule components (only if not already matched)
+                    if not result['exact_match']:
+                        proto_match = re.search(r'alert\s+(tcp|udp|icmp|ip)\s+', line_stripped, re.IGNORECASE)
+                        if proto_match:
+                            existing_protocol = proto_match.group(1).lower()
+                        
+                        port_match = re.search(r'->\s+\S+\s+(\d+|any)', line_stripped, re.IGNORECASE)
+                        if port_match:
+                            existing_port = port_match.group(1)
+                        
+                        msg_match = re.search(r'msg:"([^"]+)"', line_stripped)
+                        if msg_match:
+                            existing_msg = msg_match.group(1).lower()
+                        
+                        # Check similarity - STRICT: Must match protocol AND port
+                        is_similar = False
+                        if generated_protocol and existing_protocol and generated_protocol == existing_protocol:
+                            if generated_port and existing_port and generated_port == existing_port:
+                                # Protocol AND port match - this is a relevant similar rule
+                                is_similar = True
+                        
+                        # Only add if both protocol and port match
+                        if is_similar:
+                            result['similar_rules'].append({
+                                'rule': line_stripped,
+                                'line_number': rule_count + 1,
+                                'protocol': existing_protocol,
+                                'port': existing_port,
+                                'test_instruction': prev_comment if prev_comment else None
+                            })
+                    
+                    rule_count += 1
+                    prev_comment = None  # Reset after processing rule
+            
+            # Generate suggestions based on results
+            if result['exact_match']:
+                result['suggestions'].append(f"✅ This rule already exists in local.rules (line {result['exact_match']['line_number']}). You can add it directly to active.rules.")
+            elif result['similar_rules']:
+                # Found rules with same protocol and port - use the first one from local.rules
+                best_match = result['similar_rules'][0]
+                result['suggestions'].append(f"✅ Found matching rule in local.rules (same protocol {best_match['protocol']} and port {best_match['port']}):")
+                result['suggestions'].append(f"  • Line {best_match['line_number']}: {best_match['rule']}")
+                result['suggestions'].append("💡 This existing rule will be used instead of the generated one.")
+                # Set this as the rule to use
+                if 'exact_match' not in result or not result['exact_match']:
+                    result['exists'] = True
+                    result['exact_match'] = {
+                        'rule': best_match['rule'],
+                        'line_number': best_match['line_number']
+                    }
+                    # Get test instruction for the matched rule (need to find it in similar_rules)
+                    if 'test_instruction' in best_match:
+                        result['test_instruction'] = best_match.get('test_instruction')
+            else:
+                result['suggestions'].append("❌ No matching rule found in local.rules (same protocol and port).")
+                result['suggestions'].append("💡 This rule doesn't exist yet. You can:")
+                result['suggestions'].append("   1. Add it as a new rule (if it's valid)")
+                result['suggestions'].append("   2. Refine your prompt to match an existing rule")
+                result['suggestions'].append("   3. Check 'All Rules Library' to see available rules")
+                
+        except Exception as e:
+            print(f"Error checking rule in local.rules: {e}")
+            import traceback
+            traceback.print_exc()
+            result['suggestions'].append(f"⚠️ Error checking rules file: {str(e)}")
+        
+        return result
     
     def get_user_rules(self):
         try:
@@ -476,19 +828,30 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
             active = []
             if os.path.exists(rules_path):
                 with open(rules_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    lines = f.readlines()
                     rule_id = 0
-                    for line_num, line in enumerate(f, 1):
+                    prev_comment = None
+                    
+                    for i, line in enumerate(lines):
                         s = line.strip()
-                        if not s or s.startswith('#'):
+                        if not s:
+                            prev_comment = None  # Reset on empty lines
+                            continue
+                        if s.startswith('#'):
+                            # Check if it contains "Test:" - this is a test instruction
+                            if 'test:' in s.lower():
+                                prev_comment = s
                             continue
                         active.append({
                             'id': rule_id,
                             'rule': s,
                             'description': self._extract_rule_description(s),
-                            'category': self._extract_rule_category(s)
+                            'category': self._extract_rule_category(s),
+                            'test_instruction': prev_comment if prev_comment else None
                         })
                         rule_id += 1
                         print(f"[get_active_rules] Added rule #{rule_id}: {s[:50]}...")
+                        prev_comment = None  # Reset after using it
             print(f"[get_active_rules] Returning {len(active)} active rules")
             self.send_json_response({'rules': active})
         except Exception as e:
@@ -498,32 +861,39 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json_response({'error': str(e), 'rules': []}, status=500)
     
     def get_all_rules(self):
-        """Get all rules (system + user) with descriptions"""
+        """Get all rules (system + user) with descriptions and test instructions"""
         try:
             rules_path = self._get_rules_file()
             print(f"get_all_rules called, rules_path={rules_path}")
             all_rules = []
             if os.path.exists(rules_path):
-                with open(rules_path, 'r') as f:
+                with open(rules_path, 'r', encoding='utf-8') as f:
                     lines = f.readlines()
                     rule_count = 0
-                    for line in lines:
+                    prev_comment = None
+                    
+                    for i, line in enumerate(lines):
                         line_stripped = line.strip()
                         
-                        # Skip comments (but not rule descriptions in comments)
+                        # Check if this is a comment line with test instructions
                         if line_stripped.startswith('#'):
+                            # Check if it contains "Test:" - this is a test instruction
+                            if 'test:' in line_stripped.lower():
+                                prev_comment = line_stripped
                             continue
                         
-                        # Only non-empty lines
+                        # Only non-empty lines (actual rules)
                         if line_stripped:
                             all_rules.append({
                                 'id': rule_count,
                                 'rule': line_stripped,
                                 'description': self._extract_rule_description(line_stripped),
                                 'category': self._extract_rule_category(line_stripped),
+                                'test_instruction': prev_comment if prev_comment else None,
                                 'enabled': False
                             })
                             rule_count += 1
+                            prev_comment = None  # Reset after using it
             
             print(f"Loaded {len(all_rules)} total rules from {rules_path}")
             self.send_json_response({'rules': all_rules})
@@ -579,6 +949,8 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
             data = json.loads(post_data.decode())
             
             rule = data.get('rule', '')
+            test_instruction = data.get('test_instruction', None)
+            
             if not rule:
                 self.send_error(400, "No rule provided")
                 return
@@ -586,11 +958,18 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
             # Use the active rules file
             rules_path = self._get_rules_file()
             
-            # Append to the end of the file
-            with open(rules_path, 'a') as f:
+            # Append to the end of the file with test instruction if available
+            with open(rules_path, 'a', encoding='utf-8') as f:
+                if test_instruction:
+                    # Ensure test instruction has # prefix if it doesn't
+                    if not test_instruction.strip().startswith('#'):
+                        test_instruction = '# ' + test_instruction.strip()
+                    f.write(f"\n{test_instruction}")
                 f.write(f"\n{rule}")
             
             print(f"Added new rule to {rules_path}: {rule}")
+            if test_instruction:
+                print(f"  With test instruction: {test_instruction}")
             
             self.send_json_response({'status': 'added', 'rule': rule})
         except Exception as e:
@@ -781,6 +1160,59 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
             })
         except Exception as e:
             self.send_json_response({'error': str(e), 'status': 'unknown'}, status=500)
+    
+    def get_host_ip(self):
+        """Get saved host IP address from config file"""
+        try:
+            config_file = '.ids_host_ip'
+            if os.path.exists(config_file):
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    ip = f.read().strip()
+                    if ip:
+                        self.send_json_response({'ip': ip, 'success': True})
+                        return
+            self.send_json_response({'ip': None, 'success': True})
+        except Exception as e:
+            print(f"Error reading host IP: {e}")
+            self.send_json_response({'ip': None, 'success': False, 'error': str(e)})
+    
+    def set_host_ip(self):
+        """Save host IP address to config file"""
+        try:
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode())
+            
+            ip = data.get('ip', '').strip()
+            if not ip:
+                self.send_json_response({'success': False, 'error': 'No IP address provided'})
+                return
+            
+            # Validate IP format
+            import re
+            ip_pattern = r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
+            if not re.match(ip_pattern, ip):
+                self.send_json_response({'success': False, 'error': 'Invalid IP format'})
+                return
+            
+            # Validate octets
+            octets = ip.split('.')
+            if not all(0 <= int(octet) <= 255 for octet in octets):
+                self.send_json_response({'success': False, 'error': 'Invalid IP: octets must be 0-255'})
+                return
+            
+            # Save to config file
+            config_file = '.ids_host_ip'
+            with open(config_file, 'w', encoding='utf-8') as f:
+                f.write(ip)
+            
+            print(f"[OK] Host IP saved to config file: {ip}")
+            self.send_json_response({'success': True, 'ip': ip})
+        except Exception as e:
+            print(f"Error saving host IP: {e}")
+            import traceback
+            traceback.print_exc()
+            self.send_json_response({'success': False, 'error': str(e)})
     
     def get_firewall_alerts(self):
         try:

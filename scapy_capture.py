@@ -89,7 +89,7 @@ def get_wsl_ip():
 
 
 def map_ip_to_windows(ip_address, windows_network_ip, windows_host_ip, wsl_ip):
-    """Map WSL IP to Windows IP if the IP matches WSL IP"""
+    """Map WSL IP to Windows IP if the IP EXACTLY matches WSL IP (not subnet-based)"""
     if not ip_address:
         return ip_address
     
@@ -98,23 +98,12 @@ def map_ip_to_windows(ip_address, windows_network_ip, windows_host_ip, wsl_ip):
     if not windows_ip or not wsl_ip:
         return ip_address
     
-    # If IP exactly matches WSL IP, replace with Windows IP
+    # ONLY map if IP EXACTLY matches WSL IP (complete IP address, not subnet)
+    # This prevents mapping other computers on the same 172.17.x.x network
     if ip_address == wsl_ip:
         return windows_ip
     
-    # Check if IP is in WSL subnet (WSL typically uses 172.x.x.x)
-    # Map any IP in WSL subnet to Windows IP
-    if ip_address.startswith('172.') and wsl_ip.startswith('172.'):
-        # Extract first two octets for subnet matching
-        wsl_subnet = '.'.join(wsl_ip.split('.')[:2])
-        ip_subnet = '.'.join(ip_address.split('.')[:2])
-        
-        # If it's in the same subnet as WSL, replace with Windows IP
-        # This handles cases where WSL IP changes but is still in 172.x.x.x range
-        if ip_subnet == wsl_subnet:
-            # Map to Windows IP
-            return windows_ip
-    
+    # Don't do subnet-based mapping - use exact IP matching only
     return ip_address
 
 
@@ -139,6 +128,7 @@ class PacketCaptureEngine:
         self.windows_host_ip = None
         self.windows_network_ip = None
         self.wsl_ip = None
+        self.host_ips = set()  # All IPs this host owns (for incoming traffic detection)
         
         if self.is_wsl:
             self.windows_host_ip = get_windows_host_ip()
@@ -159,6 +149,9 @@ class PacketCaptureEngine:
         else:
             print(f"[OK] Running on native Linux")
         
+        # Collect all host IP addresses FIRST (before loading rules, as rules might need this info)
+        self._collect_host_ips()
+        
         # Load rules
         self.rules = self._load_rules()
         
@@ -178,6 +171,162 @@ class PacketCaptureEngine:
         print(f"   Alert log: {log_file}")
         print(f"   Packet log: logs/all_packets.log")
         print(f"   Loaded {len(self.rules)} rules")
+    
+    def _collect_host_ips(self):
+        """Collect all IP addresses this host owns (for incoming traffic detection)"""
+        try:
+            print(f"   [DEBUG] Collecting host IPs...")
+            print(f"   [DEBUG] WSL detection: is_wsl={self.is_wsl}, wsl_ip={self.wsl_ip}, windows_host_ip={self.windows_host_ip}, windows_network_ip={self.windows_network_ip}")
+            
+            # Get all IP addresses from hostname -I (this should include 172.17.1.152)
+            result = subprocess.run(['hostname', '-I'], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                ips = result.stdout.strip().split()
+                print(f"   [DEBUG] hostname -I returned: {ips}")
+                for ip in ips:
+                    ip_clean = ip.strip()
+                    if ip_clean:
+                        self.host_ips.add(ip_clean)
+                        print(f"   [DEBUG] Added IP from hostname -I: {ip_clean}")
+            
+            # In WSL, add ALL relevant IPs (both WSL IP and Windows IPs)
+            # External computers ping Windows IP, but packets might show WSL IP as destination
+            # So we need BOTH in host_ips to catch incoming traffic
+            if self.is_wsl:
+                # Add WSL IP first (this is what Scapy sees as destination - e.g., 172.17.1.152)
+                if self.wsl_ip:
+                    self.host_ips.add(self.wsl_ip)
+                    print(f"   [WSL] Added WSL IP for incoming detection: {self.wsl_ip}")
+                # Add Windows host IP (external devices ping this)
+                if self.windows_host_ip:
+                    self.host_ips.add(self.windows_host_ip)
+                    print(f"   [WSL] Added Windows Host IP for incoming detection: {self.windows_host_ip}")
+                # Add Windows network IP (actual WiFi/Ethernet IP)
+                if self.windows_network_ip:
+                    self.host_ips.add(self.windows_network_ip)
+                    print(f"   [WSL] Added Windows Network IP for incoming detection: {self.windows_network_ip}")
+            
+            # Also scan all network interfaces for additional IPs (CRITICAL - catches all IPs including 172.17.1.152)
+            try:
+                result = subprocess.run(['ip', 'addr', 'show'], capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    import re
+                    # Find all IP addresses (IPv4) - extract complete IP, not subnet
+                    ip_pattern = r'inet\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+                    found_ips = re.findall(ip_pattern, result.stdout)
+                    print(f"   [DEBUG] ip addr show found IPs: {found_ips}")
+                    for ip in found_ips:
+                        # Only add complete, valid IP addresses (exclude link-local and loopback)
+                        if ip and ip != '127.0.0.1' and not ip.startswith('169.254.'):
+                            self.host_ips.add(ip)
+                            print(f"   [DEBUG] Added IP from ip addr show: {ip}")
+            except Exception as e:
+                print(f"   [DEBUG] Error scanning interfaces: {e}")
+                import traceback
+                traceback.print_exc()
+            
+            # Add localhost
+            self.host_ips.add('127.0.0.1')
+            self.host_ips.add('::1')
+            
+            # Check if we're in an interactive terminal (for user input)
+            import sys
+            is_interactive = sys.stdin.isatty() and sys.stdout.isatty()
+            
+            # Get user input for host IP address if not automatically detected
+            # This is useful when automatic detection fails (e.g., WSL IP 172.17.1.152)
+            network_ips = [ip for ip in self.host_ips if ip != '127.0.0.1' and ip != '::1']
+            if len(network_ips) == 0:
+                print(f"\n   [WARNING] No network IP addresses were automatically detected.")
+                print(f"   Current host_ips: {sorted(self.host_ips)}")
+                print(f"   [INFO] Incoming traffic detection requires at least one network IP address.")
+                
+                # Try to get IP from environment variable first (for non-interactive use)
+                env_host_ip = os.environ.get('IDS_HOST_IP', '').strip()
+                if env_host_ip:
+                    import re
+                    ip_pattern = r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
+                    if re.match(ip_pattern, env_host_ip):
+                        octets = env_host_ip.split('.')
+                        if all(0 <= int(octet) <= 255 for octet in octets):
+                            self.host_ips.add(env_host_ip)
+                            print(f"   [OK] Added host IP from environment variable IDS_HOST_IP: {env_host_ip}")
+                        else:
+                            print(f"   [ERROR] Invalid IP in IDS_HOST_IP environment variable: {env_host_ip}")
+                    else:
+                        print(f"   [ERROR] Invalid IP format in IDS_HOST_IP environment variable: {env_host_ip}")
+                elif is_interactive:
+                    # Only prompt for input if we're in an interactive terminal
+                    print(f"\n   [INPUT REQUIRED] Please enter your host IP address.")
+                    print(f"   Example: 172.17.1.152 (for WSL) or your actual network IP")
+                    
+                    while True:
+                        try:
+                            user_ip = input(f"   Enter host IP address (or press Enter to skip): ").strip()
+                            if not user_ip:
+                                print(f"   [SKIP] No IP entered - incoming detection may not work!")
+                                print(f"   [TIP] You can set IDS_HOST_IP environment variable instead.")
+                                break
+                            
+                            # Basic IP validation
+                            import re
+                            ip_pattern = r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
+                            if re.match(ip_pattern, user_ip):
+                                # Verify each octet is 0-255
+                                octets = user_ip.split('.')
+                                if all(0 <= int(octet) <= 255 for octet in octets):
+                                    self.host_ips.add(user_ip)
+                                    print(f"   [OK] Added user-provided IP: {user_ip}")
+                                    break
+                                else:
+                                    print(f"   [ERROR] Invalid IP: octets must be 0-255. Please try again.")
+                            else:
+                                print(f"   [ERROR] Invalid IP format. Please enter a valid IPv4 address (e.g., 172.17.1.152).")
+                        except (KeyboardInterrupt, EOFError):
+                            print(f"\n   [SKIP] Input cancelled - skipping manual addition")
+                            break
+                        except Exception as e:
+                            print(f"   [ERROR] Input error: {e}. Please try again.")
+                else:
+                    # Non-interactive mode - provide instructions
+                    print(f"   [SKIP] Non-interactive mode detected - cannot prompt for input.")
+                    print(f"   [TIP] To set host IP, use environment variable: export IDS_HOST_IP=172.17.1.152")
+                    print(f"   [TIP] Or create a config file: echo '172.17.1.152' > .ids_host_ip")
+            
+            # Check if we should read from config file
+            config_file = '.ids_host_ip'
+            if os.path.exists(config_file):
+                try:
+                    with open(config_file, 'r') as f:
+                        config_ip = f.read().strip()
+                    if config_ip:
+                        import re
+                        ip_pattern = r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
+                        if re.match(ip_pattern, config_ip):
+                            octets = config_ip.split('.')
+                            if all(0 <= int(octet) <= 255 for octet in octets):
+                                if config_ip not in self.host_ips:
+                                    self.host_ips.add(config_ip)
+                                    print(f"   [OK] Added host IP from config file (.ids_host_ip): {config_ip}")
+                        else:
+                            print(f"   [WARNING] Invalid IP format in .ids_host_ip config file: {config_ip}")
+                except Exception as e:
+                    print(f"   [WARNING] Could not read .ids_host_ip config file: {e}")
+            
+            if self.host_ips:
+                print(f"   Host IPs for incoming detection ({len(self.host_ips)} total): {', '.join(sorted(self.host_ips))}")
+                # Show summary of detected IPs (excluding localhost)
+                network_ips = [ip for ip in self.host_ips if ip != '127.0.0.1' and ip != '::1']
+                if network_ips:
+                    print(f"   [OK] Network IPs detected: {', '.join(sorted(network_ips))}")
+                else:
+                    print(f"   [WARNING] Only localhost IPs detected - incoming detection may not work for external traffic!")
+            else:
+                print(f"   [WARNING] No host IPs collected! Incoming traffic detection will fail.")
+        except Exception as e:
+            print(f"   Warning: Could not collect host IPs: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _load_rules(self):
         """Load IDS rules from file"""
@@ -272,9 +421,9 @@ class PacketCaptureEngine:
             else:
                 return False
             
-            # Check IP match (require IP layer for TCP/UDP rules)
-            if rule['protocol'] in ['tcp', 'udp']:
-                # TCP/UDP rules require IP layer (IPv4 or IPv6)
+            # Check IP match (require IP layer for TCP/UDP/ICMP rules)
+            if rule['protocol'] in ['tcp', 'udp', 'icmp']:
+                # TCP/UDP/ICMP rules require IP layer (IPv4 or IPv6)
                 if not (packet.haslayer(IP) or packet.haslayer(IPv6)):
                     return False
             
@@ -287,42 +436,47 @@ class PacketCaptureEngine:
                 ip_packet = packet[IPv6]
                 is_ipv6 = True
             
-            if ip_packet:
-                # Check source IP
-                if rule['src_ip'] != 'any':
-                    if str(ip_packet.src) != rule['src_ip']:
+            # All rules need IP layer for matching
+            if not ip_packet:
+                return False
+            
+            # Check source IP
+            if rule['src_ip'] != 'any':
+                if str(ip_packet.src) != rule['src_ip']:
+                    return False
+            
+            # Check destination IP
+            if rule['dst_ip'] != 'any':
+                if str(ip_packet.dst) != rule['dst_ip']:
+                    return False
+            
+            # Check ports for TCP/UDP
+            if packet.haslayer(TCP):
+                tcp_packet = packet[TCP]
+                if rule['dst_port'] != 'any' and rule['dst_port'] != '0':
+                    if tcp_packet.dport != int(rule['dst_port']):
                         return False
-                
-                # Check destination IP
-                if rule['dst_ip'] != 'any':
-                    if str(ip_packet.dst) != rule['dst_ip']:
-                        return False
-                
-                # Check ports for TCP/UDP
-                if packet.haslayer(TCP):
-                    tcp_packet = packet[TCP]
-                    if rule['dst_port'] != 'any' and rule['dst_port'] != '0':
-                        if tcp_packet.dport != int(rule['dst_port']):
-                            return False
-                    if rule['src_port'] != 'any' and rule['src_port'] != '0':
-                        if tcp_packet.sport != int(rule['src_port']):
-                            return False
-                
-                if packet.haslayer(UDP):
-                    udp_packet = packet[UDP]
-                    if rule['dst_port'] != 'any' and rule['dst_port'] != '0':
-                        if udp_packet.dport != int(rule['dst_port']):
-                            return False
-                    if rule['src_port'] != 'any' and rule['src_port'] != '0':
-                        if udp_packet.sport != int(rule['src_port']):
-                            return False
-                
-                # Check content match if specified
-                if rule['content']:
-                    raw_data = bytes(packet)
-                    if rule['content'].encode() not in raw_data:
+                if rule['src_port'] != 'any' and rule['src_port'] != '0':
+                    if tcp_packet.sport != int(rule['src_port']):
                         return False
             
+            if packet.haslayer(UDP):
+                udp_packet = packet[UDP]
+                if rule['dst_port'] != 'any' and rule['dst_port'] != '0':
+                    if udp_packet.dport != int(rule['dst_port']):
+                        return False
+                if rule['src_port'] != 'any' and rule['src_port'] != '0':
+                    if udp_packet.sport != int(rule['src_port']):
+                        return False
+            
+            # Check content match if specified
+            if rule['content']:
+                raw_data = bytes(packet)
+                if rule['content'].encode() not in raw_data:
+                    return False
+            
+            # Note: Incoming traffic check is now done in _process_packet to have access to full packet context
+            # All checks passed - rule matches
             return True
             
         except Exception as e:
@@ -346,9 +500,9 @@ class PacketCaptureEngine:
                 dst_ip = str(ip_packet.dst)
                 
                 # Map WSL IPs to Windows IPs if in WSL
-                if self.is_wsl and self.windows_host_ip and self.wsl_ip:
-                    src_ip = map_ip_to_windows(src_ip, self.windows_host_ip, self.wsl_ip)
-                    dst_ip = map_ip_to_windows(dst_ip, self.windows_host_ip, self.wsl_ip)
+                if self.is_wsl and (self.windows_network_ip or self.windows_host_ip) and self.wsl_ip:
+                    src_ip = map_ip_to_windows(src_ip, self.windows_network_ip or '', self.windows_host_ip or '', self.wsl_ip)
+                    dst_ip = map_ip_to_windows(dst_ip, self.windows_network_ip or '', self.windows_host_ip or '', self.wsl_ip)
                 
                 if packet.haslayer(TCP):
                     protocol = "TCP"
@@ -379,7 +533,22 @@ class PacketCaptureEngine:
         self.packet_count += 1
         self.stats['total_packets'] += 1
         
-        # Log ALL packets (whether they match rules or not)
+        # Determine if this packet is incoming (for rules with "incoming" in message)
+        is_incoming = False
+        if packet.haslayer(IP):
+            dst_ip = str(packet[IP].dst)
+        elif packet.haslayer(IPv6):
+            dst_ip = str(packet[IPv6].dst)
+        else:
+            dst_ip = None
+        
+        # Check if destination IP is one of host IPs (EXACT match)
+        if dst_ip and hasattr(self, 'host_ips') and len(self.host_ips) > 0:
+            if dst_ip in self.host_ips:
+                is_incoming = True
+        
+        # Log ALL packets to all_packets.log (for C engine processing)
+        # Note: C engine will check incoming detection when matching rules
         self._log_packet(packet)
         
         # Update protocol stats
@@ -392,7 +561,40 @@ class PacketCaptureEngine:
         
         # Check against all rules
         for rule in self.rules:
-            if self._matches_rule(packet, rule):
+            rule_matched = self._matches_rule(packet, rule)
+            if rule_matched:
+                print(f"   [DEBUG] Rule matched: {rule.get('msg', 'N/A')} (protocol={rule.get('protocol')})")
+                # Check incoming traffic filter (only for rules with "Incoming" in message)
+                if 'incoming' in rule.get('msg', '').lower():
+                    # Verify destination IP is one of host's IPs
+                    if packet.haslayer(IP):
+                        dst_ip = str(packet[IP].dst)
+                    elif packet.haslayer(IPv6):
+                        dst_ip = str(packet[IPv6].dst)
+                    else:
+                        # No IP layer, can't determine - skip
+                        print(f"   [DEBUG] Rule matched but no IP layer - skipping")
+                        continue
+                    
+                    # Check if destination IP is in host IPs (EXACT IP match, not subnet)
+                    if not hasattr(self, 'host_ips') or len(self.host_ips) == 0:
+                        # Host IPs not collected - skip to avoid false positives
+                        print(f"   [DEBUG] Rule matched but host_ips empty - skipping incoming rule")
+                        continue
+                    
+                    # Check if destination IP EXACTLY matches any host IP (complete IP address check)
+                    # This prevents false positives when other computers on same subnet (e.g., 172.17.x.x) 
+                    # send packets that would match our host IP if we did subnet matching
+                    print(f"   [DEBUG] Checking incoming: dst_ip={dst_ip}, host_ips={self.host_ips}, match={dst_ip in self.host_ips}")
+                    if dst_ip not in self.host_ips:
+                        # This is outgoing traffic or traffic to another computer on same network - skip
+                        print(f"   [DEBUG] Skipping - {dst_ip} not in host_ips")
+                        continue
+                    # If we get here, dst_ip EXACTLY matches one of our host IPs - this is incoming traffic!
+                    print(f"   [DEBUG] Incoming traffic confirmed: {dst_ip} matches host IPs!")
+                
+                # Generate alert
+                print(f"   [DEBUG] Generating alert for rule: {rule.get('msg', 'N/A')}")
                 self._generate_alert(packet, rule)
                 self.alert_count += 1
                 self.stats['alerts'] += 1
