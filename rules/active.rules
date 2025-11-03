@@ -17,3 +17,5 @@ alert udp any any -> any 53 (msg:"Incoming DNS Query"; priority:5);
 # Rule 5: Detect incoming HTTPS requests (port 443)
 # Test: curl https://<WINDOWS-IP> from another computer
 alert tcp any any -> any 443 (msg:"Incoming HTTPS Traffic"; priority:5);
+# Test: traceroute <WINDOWS-IP> from another computer
+alert icmp any any -> any any (msg:"Incoming ICMP Traceroute"; priority:5);

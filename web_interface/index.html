@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IDS DSL Engine - AI-Powered Security System</title>
+    <title>Intrusion Detection System Domain Specific Language Engine - AI-Powered Security System</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -302,7 +302,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛡️ IDS DSL Engine</h1>
+            <h1>Intrusion Detection System Domain Specific Language Engine </br> AI-Powered Security System</h1>
             <p>AI-Powered Network Intrusion Detection System with Gemini Integration</p>
         </div>
 
@@ -311,7 +311,7 @@
             <div class="card">
                 <h2> Gemini AI Rule Creator</h2>
                 <div class="gemini-status">
-                    ✅ Gemini API Connected - Ready for AI conversion
+                     Gemini API Connected - Ready for AI conversion
                 </div>
 
                 <div class="input-group">
@@ -319,7 +319,7 @@
                     <textarea id="natural-language" rows="4" placeholder="e.g., 'Detect SQL injection attempts on web servers' or 'Alert on suspicious SSH login attempts'"></textarea>
                 </div>
                 
-                <button class="btn btn-warning" onclick="convertRule()">🤖 Convert with Gemini AI</button>
+                <button class="btn btn-warning" onclick="convertRule()"> Convert with Gemini AI</button>
                 
                 <div class="input-group" style="margin-top: 20px;">
                     <label for="dsl-rule">Generated DSL Rule:</label>
@@ -327,10 +327,10 @@
                     <div id="rule-suggestions" style="display: none; margin-top: 10px;"></div>
                 </div>
                 
-                <button class="btn btn-success" onclick="addRule()">➕ Add Rule to Engine</button>
+                <button class="btn btn-success" onclick="addRule()"> Add Rule to Engine</button>
                 
                 <div class="examples">
-                    <h4>📋 Quick Examples (Click to try):</h4>
+                    <h4> Quick Examples (Click to try):</h4>
                     <ul>
                         <li onclick="setExample('Detect incoming ICMP ping')">Detect incoming ICMP ping</li>
                         <li onclick="setExample('Detect SQL injection attempts')">Detect SQL injection attempts</li>
@@ -343,7 +343,7 @@
                 </div>
                 
                 <div style="margin-top: 20px; padding: 15px; background-color: #e7f3ff; border-left: 4px solid #2196F3; border-radius: 4px;">
-                    <h4 style="margin-top: 0; color: #1976D2;">💡 Rule Format Help</h4>
+                    <h4 style="margin-top: 0; color: #1976D2;"> Rule Format Help</h4>
                     <p style="margin: 5px 0; font-size: 0.9em; color: #555;">
                         <strong>For ICMP/Ping rules:</strong> Gemini will automatically use <code>alert icmp any any -> any any</code> format<br>
                         <strong>For TCP/UDP rules:</strong> Specify port numbers (e.g., HTTP=80, SSH=22, HTTPS=443)<br>
@@ -374,13 +374,13 @@
                         <label for="host-ip-input">Host IP Address (for incoming traffic detection):</label>
                         <input type="text" id="host-ip-input" placeholder="e.g., 172.17.1.152" 
                                style="margin-bottom: 10px;" pattern="^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$">
-                        <button class="btn" onclick="saveHostIP()" style="margin-bottom: 10px;">💾 Save Host IP</button>
+                        <button class="btn" onclick="saveHostIP()" style="margin-bottom: 10px;"> Save Host IP</button>
                         <small style="color: #666; display: block; margin-top: 5px;">
                             Enter your host IP address if automatic detection fails. This IP will be used to detect incoming traffic.
                         </small>
                     </div>
-                    <button class="btn btn-success" onclick="startEngine()">🚀 Start Engine</button>
-                    <button class="btn btn-danger" onclick="stopEngine()">🛑 Stop Engine</button>
+                    <button class="btn btn-success" onclick="startEngine()"> Start Engine</button>
+                    <button class="btn btn-danger" onclick="stopEngine()"> Stop Engine</button>
                 </div>
                 
                 <div class="loading" id="loading">
@@ -390,7 +390,7 @@
             </div>
         </div>
 
-        <!-- All Rules Library -->
+        <!-- All Rules Library 
         <div class="card full-width">
             <h2> All Rules Library (Add Rules from Catalog)</h2>
             <p style="margin-bottom: 20px; color: #666;">
@@ -409,7 +409,7 @@
                 </p>
             </div>
         </div>
-
+    -->
         <!-- Current Active Rules -->
         <div class="card full-width">
             <h2> Current Active Rules (Checked by IDS Engine)</h2>
@@ -418,7 +418,7 @@
             </p>
             
             <div style="margin-bottom: 20px;">
-                <button class="btn btn-success" onclick="loadCurrentRules()">🔄 Refresh Current Rules</button>
+                <button class="btn btn-success" onclick="loadCurrentRules()"> Refresh Current Rules</button>
             </div>
             
             <div class="rules-list" id="current-rules-list">
@@ -436,12 +436,12 @@
                     Start the engine to see live security alerts...
                 </p>
             </div>
-            <button class="btn" id="refresh-btn" onclick="refreshAlerts()" style="margin-top: 15px; display: none;">🔄 Refresh Alerts</button>
+            <button class="btn" id="refresh-btn" onclick="refreshAlerts()" style="margin-top: 15px; display: none;"> Refresh Alerts</button>
         </div>
 
         <!-- Firewall Monitoring -->
         <div class="card full-width">
-            <h2>🔥 Firewall Event Monitor</h2>
+            <h2> Firewall Event Monitor</h2>
             <p style="margin-bottom: 20px; color: #666;">
                 Real-time monitoring of firewall configuration changes and security events. Detects commands like <code>ufw reset</code>, <code>iptables -F</code>, and other critical firewall operations.
             </p>
@@ -472,11 +472,11 @@
             
             <!-- Filter Controls -->
             <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn" onclick="loadFirewallEvents()">🔄 Refresh Events</button>
-                <button class="btn btn-danger" onclick="loadFirewallEvents('critical')">🔥 Critical Only</button>
-                <button class="btn btn-warning" onclick="loadFirewallEvents('high')">⚠️ High Priority</button>
-                <button class="btn btn-info" onclick="loadFirewallEvents()">📋 All Events</button>
-                <button class="btn" onclick="toggleFirewallStream()" id="stream-toggle-btn">▶️ Start Live Stream</button>
+                <button class="btn" onclick="loadFirewallEvents()"> Refresh Events</button>
+                <button class="btn btn-danger" onclick="loadFirewallEvents('critical')"> Critical Only</button>
+                <button class="btn btn-warning" onclick="loadFirewallEvents('high')"> High Priority</button>
+                <button class="btn btn-info" onclick="loadFirewallEvents()"> All Events</button>
+                <button class="btn" onclick="toggleFirewallStream()" id="stream-toggle-btn"> Start Live Stream</button>
             </div>
             
             <!-- Firewall Events Container -->
@@ -497,8 +497,8 @@
                 <label for="edit-rule-text">Rule:</label>
                 <textarea id="edit-rule-text" rows="4"></textarea>
             </div>
-            <button class="btn btn-success" onclick="saveEditedRule()">💾 Save Changes</button>
-            <button class="btn btn-danger" onclick="closeEditModal()">❌ Cancel</button>
+            <button class="btn btn-success" onclick="saveEditedRule()"> Save Changes</button>
+            <button class="btn btn-danger" onclick="closeEditModal()"> Cancel</button>
         </div>
     </div>
 
@@ -527,7 +527,7 @@
             const dslRuleElement = document.getElementById('dsl-rule');
             const suggestionsElement = document.getElementById('rule-suggestions');
             
-            dslRuleElement.textContent = '🤖 Gemini AI is processing your request...';
+            dslRuleElement.textContent = ' Gemini AI is processing your request...';
             if (suggestionsElement) {
                 suggestionsElement.innerHTML = '';
                 suggestionsElement.style.display = 'none';
@@ -560,7 +560,7 @@
                     
                     if (suggestionsElement) {
                         suggestionsElement.innerHTML = '<div style="color: #155724; padding: 10px; background: #d4edda; border-radius: 4px; margin-top: 10px;">' +
-                            '<strong>✅ Rule Found in Catalog!</strong><br>' +
+                            '<strong> Rule Found in Catalog!</strong><br>' +
                             (data.suggestions || []).join('<br>') +
                             '</div>' + testInstructionHtml;
                         suggestionsElement.style.display = 'block';
@@ -569,7 +569,7 @@
                     // Show "Add from Catalog" button instead of regular add
                     const addBtn = document.querySelector('button[onclick="addRule()"]');
                     if (addBtn) {
-                        addBtn.textContent = '✅ Add Existing Rule to Engine';
+                        addBtn.textContent = ' Add Existing Rule to Engine';
                         addBtn.style.backgroundColor = '#28a745';
                     }
                 } else if (data.similar_rules && data.similar_rules.length > 0) {
@@ -579,7 +579,7 @@
                     
                     if (suggestionsElement) {
                         let similarHtml = '<div style="color: #155724; padding: 10px; background: #d4edda; border-radius: 4px; margin-top: 10px;">' +
-                            '<strong>✅ Matching Rule Found in Catalog!</strong><br>';
+                            '<strong> Matching Rule Found in Catalog!</strong><br>';
                         data.suggestions.forEach(s => {
                             similarHtml += s + '<br>';
                         });
@@ -594,7 +594,7 @@
                     // Show "Add from Catalog" button
                     const addBtn = document.querySelector('button[onclick="addRule()"]');
                     if (addBtn) {
-                        addBtn.textContent = '✅ Add Existing Rule to Engine';
+                        addBtn.textContent = ' Add Existing Rule to Engine';
                         addBtn.style.backgroundColor = '#28a745';
                     }
                 } else {
@@ -604,9 +604,9 @@
                     
                     if (suggestionsElement) {
                         suggestionsElement.innerHTML = '<div style="color: #0c5460; padding: 10px; background: #d1ecf1; border-radius: 4px; margin-top: 10px;">' +
-                            '<strong>📝 New Rule Generated</strong><br>' +
+                            '<strong> New Rule Generated</strong><br>' +
                             (data.suggestions || []).join('<br>') +
-                            '<br><strong>💡 Options:</strong><br>' +
+                            '<br><strong> Options:</strong><br>' +
                             '• Add this rule if it\'s what you need<br>' +
                             '• Refine your prompt for better results<br>' +
                             '• Check "All Rules Library" for existing rules' +
@@ -616,13 +616,13 @@
                     
                     const addBtn = document.querySelector('button[onclick="addRule()"]');
                     if (addBtn) {
-                        addBtn.textContent = '➕ Add Rule to Engine';
+                        addBtn.textContent = ' Add Rule to Engine';
                         addBtn.style.backgroundColor = '#17a2b8';
                     }
                 }
             } catch (error) {
                 console.error('Error converting rule:', error);
-                dslRuleElement.textContent = '❌ Error: Could not connect to Gemini AI. Please try again.';
+                dslRuleElement.textContent = ' Error: Could not connect to Gemini AI. Please try again.';
                 dslRuleElement.style.border = '2px solid #dc3545';
                 dslRuleElement.style.backgroundColor = '#f8d7da';
                 if (suggestionsElement) {
@@ -651,7 +651,7 @@
                 const response = await fetch('/api/add_rule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestData) });
                 const data = await response.json();
                 if (data.status === 'added') { 
-                    alert('✅ Rule added successfully to the engine!'); 
+                    alert(' Rule added successfully to the engine!'); 
                     loadRules(); 
                     // Reset display
                     document.getElementById('dsl-rule').textContent = 'Generated rules will appear here...';
@@ -665,13 +665,13 @@
                     // Reset button
                     const addBtn = document.querySelector('button[onclick="addRule()"]');
                     if (addBtn) {
-                        addBtn.textContent = '➕ Add Rule to Engine';
+                        addBtn.textContent = ' Add Rule to Engine';
                         addBtn.style.backgroundColor = '#28a745';
                     }
                 }
             } catch (error) {
                 console.error('Error adding rule:', error);
-                alert('❌ Error adding rule. Please try again.');
+                alert(' Error adding rule. Please try again.');
             }
         }
 
@@ -739,7 +739,7 @@
                     </div>
                     ${rule.test_instruction ? `
                     <div style="margin-bottom: 10px; padding: 10px; background: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 4px; font-size: 0.9em; color: #1565C0;">
-                        <strong>📋 Test:</strong> ${escapeHtml(rule.test_instruction.replace(/^#\s*/, '').replace(/Test:\s*/i, ''))}
+                        <strong> Test:</strong> ${escapeHtml(rule.test_instruction.replace(/^#\s*/, '').replace(/Test:\s*/i, ''))}
                     </div>
                     ` : ''}
                     <div class="rule-text"><strong>Rule #${(rule.id ?? 0) + 1}:</strong> ${escapeHtml(rule.rule)}</div>
@@ -747,7 +747,7 @@
                         <strong>Description:</strong> ${rule.description || 'Security rule'}
                     </div>
                     <div class="rule-actions">
-                        <button class="btn btn-success" onclick="addRuleFromCatalog(${rule.id ?? 0})">➕ Add to Current Rules</button>
+                        <button class="btn btn-success" onclick="addRuleFromCatalog(${rule.id ?? 0})"> Add to Current Rules</button>
                     </div>
                 </div>
             `).join('');
@@ -780,7 +780,7 @@
                 <div class="rule-item">
                     ${rule.test_instruction ? `
                     <div style="margin-bottom: 10px; padding: 10px; background: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 4px; font-size: 0.9em; color: #1565C0;">
-                        <strong>📋 Test:</strong> ${escapeHtml(rule.test_instruction.replace(/^#\s*/, '').replace(/Test:\s*/i, ''))}
+                        <strong> Test:</strong> ${escapeHtml(rule.test_instruction.replace(/^#\s*/, '').replace(/Test:\s*/i, ''))}
                     </div>
                     ` : ''}
                     <div class="rule-text"><strong>Rule #${rule.id + 1}:</strong> ${escapeHtml(rule.rule)}</div>
@@ -790,8 +790,8 @@
                     </div>
                     ` : ''}
                     <div class="rule-actions">
-                        <button class="btn btn-info" onclick="editRule(${rule.id})" style="margin-right: 10px;">✏️ Edit</button>
-                        <button class="btn btn-danger" onclick="deleteRule(${rule.id})">🗑️ Delete</button>
+                        <button class="btn btn-info" onclick="editRule(${rule.id})" style="margin-right: 10px;"> Edit</button>
+                        <button class="btn btn-danger" onclick="deleteRule(${rule.id})"> Delete</button>
                     </div>
                 </div>
             `).join('');
@@ -809,10 +809,10 @@
                     }
                     const response = await fetch('/api/add_rule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestData) });
                     const data = await response.json();
-                    if (data.status === 'added') { alert('✅ Rule added to current rules!'); loadCurrentRules(); }
+                    if (data.status === 'added') { alert(' Rule added to current rules!'); loadCurrentRules(); }
                 } catch (error) {
                     console.error('Error adding rule from catalog:', error);
-                    alert('❌ Error adding rule. Please try again.');
+                    alert(' Error adding rule. Please try again.');
                 }
             }
         }
@@ -835,10 +835,10 @@
             try {
                 const response = await fetch('/api/update_rule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingRuleId, rule: newRule }) });
                 const data = await response.json();
-                if (data.status === 'updated') { alert('✅ Rule updated successfully!'); closeEditModal(); loadRules(); }
+                if (data.status === 'updated') { alert('  Rule updated successfully!'); closeEditModal(); loadRules(); }
             } catch (error) {
                 console.error('Error updating rule:', error);
-                alert('❌ Error updating rule. Please try again.');
+                alert('  Error updating rule. Please try again.');
             }
         }
 
@@ -847,10 +847,10 @@
             try {
                 const response = await fetch('/api/delete_rule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: ruleId }) });
                 const data = await response.json();
-                if (data.status === 'deleted') { alert('✅ Rule deleted successfully!'); loadRules(); }
+                if (data.status === 'deleted') { alert('  Rule deleted successfully!'); loadRules(); }
             } catch (error) {
                 console.error('Error deleting rule:', error);
-                alert('❌ Error deleting rule. Please try again.');
+                alert('  Error deleting rule. Please try again.');
             }
         }
 
@@ -997,20 +997,20 @@
                 const severityColor = severityColors[severityClass] || '#ffc107';
                 
                 const iconMap = {
-                    'ufw_reset': '🔥',
-                    'ufw_disable': '🔥',
-                    'iptables_flush': '🔥',
-                    'iptables_delete': '🔥',
-                    'firewall_stop': '🔥',
-                    'chmod_dangerous': '⚠️',
-                    'iptables_rule_change': '⚙️',
-                    'ufw_rule_add': '➕',
-                    'ufw_enable': '✅',
-                    'firewall_reload': '🔄',
-                    'root_command': '🔐',
-                    'privilege_escalation': '⚠️'
+                    'ufw_reset': '',
+                    'ufw_disable': '',
+                    'iptables_flush': '',
+                    'iptables_delete': '',
+                    'firewall_stop': '',
+                    'chmod_dangerous': '',
+                    'iptables_rule_change': '',
+                    'ufw_rule_add': '',
+                    'ufw_enable': ' ',
+                    'firewall_reload': '',
+                    'root_command': '',
+                    'privilege_escalation': ''
                 };
-                const icon = iconMap[event.event_type] || '📋';
+                const icon = iconMap[event.event_type] || '';
                 
                 return `
                     <div class="alert-item ${severityClass}" style="border-left-color: ${severityColor}; margin-bottom: 15px;">
@@ -1056,7 +1056,7 @@
             }
             
             const container = document.getElementById('firewall-events-container');
-            container.innerHTML = '<p style="text-align: center; color: #28a745; padding: 20px;">🔴 Live stream active. Waiting for firewall events...</p>';
+            container.innerHTML = '<p style="text-align: center; color: #28a745; padding: 20px;"> Live stream active. Waiting for firewall events...</p>';
             
             try {
                 firewallEventSource = new EventSource('/api/firewall_events/stream');
@@ -1077,11 +1077,11 @@
                     firewallEventSource.close();
                     firewallEventSource = null;
                     firewallStreamActive = false;
-                    document.getElementById('stream-toggle-btn').textContent = '▶️ Start Live Stream';
+                    document.getElementById('stream-toggle-btn').textContent = ' Start Live Stream';
                     loadFirewallEvents(); // Fallback to polling
                 };
                 
-                document.getElementById('stream-toggle-btn').textContent = '⏸️ Stop Live Stream';
+                document.getElementById('stream-toggle-btn').textContent = ' Stop Live Stream';
                 document.getElementById('stream-toggle-btn').classList.add('btn-danger');
                 document.getElementById('stream-toggle-btn').classList.remove('btn-info');
                 
@@ -1098,7 +1098,7 @@
                 firewallStreamActive = false;
                 if (window.firewallPollInterval) clearInterval(window.firewallPollInterval);
                 window.firewallPollInterval = setInterval(loadFirewallEvents, 3000);
-                document.getElementById('stream-toggle-btn').textContent = '🔄 Polling Active';
+                document.getElementById('stream-toggle-btn').textContent = ' Polling Active';
                 loadFirewallEvents();
             }
         }
@@ -1113,7 +1113,7 @@
                 clearInterval(window.firewallPollInterval);
                 window.firewallPollInterval = null;
             }
-            document.getElementById('stream-toggle-btn').textContent = '▶️ Start Live Stream';
+            document.getElementById('stream-toggle-btn').textContent = ' Start Live Stream';
             document.getElementById('stream-toggle-btn').classList.remove('btn-danger');
             document.getElementById('stream-toggle-btn').classList.add('btn-info');
             loadFirewallEvents(); // Show current events

@@ -2,7 +2,7 @@
 
 The firewall parser uses **Flex** (Lex) and **Bison** (Yacc) for lexical analysis and parsing, following compiler design principles.
 
-## ⚠️ Important: Windows Users
+##  Important: Windows Users
 
 If you're on Windows, you need to build in **WSL** (Windows Subsystem for Linux) or on a Linux machine:
 

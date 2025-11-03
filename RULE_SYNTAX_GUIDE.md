@@ -128,3 +128,6 @@ After creating a rule, test it by:
 3. Generating traffic that should match the rule
 4. Checking `logs/alerts.log` for the alert
 
+
+
+

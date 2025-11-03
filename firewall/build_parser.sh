@@ -26,7 +26,7 @@ fi
 # Build
 if make; then
     echo ""
-    echo "✅ Build successful!"
+    echo " Build successful!"
     echo ""
     echo "Library location: build/firewall/libfirewall_parser.so"
     echo ""
@@ -35,7 +35,7 @@ if make; then
     echo "  Then check web interface at http://localhost:8080"
 else
     echo ""
-    echo "❌ Build failed. Check errors above."
+    echo " Build failed. Check errors above."
     exit 1
 fi
 

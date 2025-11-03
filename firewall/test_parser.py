@@ -37,7 +37,7 @@ def append_logs():
             f.write(log_entry + '\n')
             print(f"Added: {log_entry[:80]}...")
     
-    print(f"\n✅ Sample logs added to {log_file}")
+    print(f"\n Sample logs added to {log_file}")
     print("Now check the web interface at http://localhost:8080 to see the firewall events!")
 
 if __name__ == '__main__':

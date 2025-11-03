@@ -38,7 +38,4 @@ void free_rule_list(Rule* rule_list);
 void print_rule(Rule* rule);
 void print_rule_list(Rule* rule_list);
 
-// Retrieve an option value by name from a rule (returns NULL if not present)
-const char* get_rule_option(Rule* rule, const char* name);
-
 #endif // AST_H

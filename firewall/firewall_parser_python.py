@@ -153,12 +153,12 @@ if __name__ == '__main__':
     event = parser.parse_log_line(test_line)
     
     if event:
-        print(f"\n✅ Detected event:")
+        print(f"\n Detected event:")
         print(f"  Type: {event.get('event_type')}")
         print(f"  Severity: {event.get('severity')}")
         print(f"  Description: {event.get('description')}")
     else:
-        print("\n❌ No event detected")
+        print("\n No event detected")
         print("\nNote: Make sure to build the C parser first:")
         print("  cd firewall && make")
 

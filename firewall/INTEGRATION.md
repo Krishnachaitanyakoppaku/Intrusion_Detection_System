@@ -2,7 +2,7 @@
 
 ## Integration Status
 
-✅ **Fully Integrated**
+ **Fully Integrated**
 
 The firewall parser is correctly integrated with the web server:
 

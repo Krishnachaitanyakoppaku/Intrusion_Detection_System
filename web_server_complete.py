@@ -21,9 +21,9 @@ try:
     sys.path.insert(0, firewall_parser_path)
     from firewall_parser_python import FirewallEventParser
     FIREWALL_PARSER_AVAILABLE = True
-    print("✅ Firewall parser (Lex/Yacc) loaded successfully")
+    print(" Firewall parser (Lex/Yacc) loaded successfully")
 except ImportError as e:
-    print(f"⚠️  Warning: Firewall parser not available: {e}")
+    print(f"  Warning: Firewall parser not available: {e}")
     print("  To build the parser:")
     print("    1. On Linux/WSL: cd firewall && make")
     print("    2. Or: bash firewall/build_parser.sh")
@@ -251,7 +251,7 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
             
             interface = data.get('interface', 'any')
             print(f"\n{'='*50}")
-            print(f"🚀 Starting IDS engine on interface: {interface}")
+            print(f" Starting IDS engine on interface: {interface}")
             print(f"{'='*50}")
             
             current_dir = os.getcwd()
@@ -267,7 +267,7 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
             
             # Try Scapy first (cross-platform, easier to use)
             if os.path.exists('./scapy_capture.py'):
-                print(f"✅ Using Scapy-based packet capture")
+                print(f" Using Scapy-based packet capture")
                 if sys.platform == 'win32':
                     cmd = [sys.executable, './scapy_capture.py', interface]
                 else:
@@ -283,7 +283,7 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
                 print(f"Command: {' '.join(cmd)}")
             # Fallback to C engine
             elif os.path.exists('./bin/ids_engine'):
-                print(f"✅ Using C-based ids_engine")
+                print(f" Using C-based ids_engine")
                 if sys.platform == 'win32':
                     wsl_path = current_dir.replace('\\', '/').replace('C:', '/mnt/c')
                     cmd_str = f'cd {wsl_path} && ./bin/ids_engine -i {interface} -r rules/active.rules'
@@ -321,13 +321,13 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
             output_thread = threading.Thread(target=read_output, daemon=True)
             output_thread.start()
             
-            print(f"✅ IDS engine started with PID: {self.ids_process.pid}")
-            print(f"✅ Monitoring output in background thread")
+            print(f" IDS engine started with PID: {self.ids_process.pid}")
+            print(f" Monitoring output in background thread")
             print(f"{'='*50}\n")
             
             self.send_json_response({'status': 'started', 'interface': interface, 'pid': self.ids_process.pid})
         except Exception as e:
-            print(f"\n❌ Error starting IDS: {e}")
+            print(f"\n   Error starting IDS: {e}")
             import traceback
             traceback.print_exc()
             self.send_error(500, str(e))
@@ -608,7 +608,7 @@ Return ONLY the complete rule in the exact format above. No explanations, no mar
                             'line_number': rule_count + 1
                         }
                         result['test_instruction'] = prev_comment if prev_comment else None
-                        result['suggestions'].append(f"✅ Exact match found in local.rules (line {rule_count + 1}). You can add this existing rule to active.rules.")
+                        result['suggestions'].append(f" Exact match found in local.rules (line {rule_count + 1}). You can add this existing rule to active.rules.")
                         return result
                     
                     # Extract existing rule components first (needed for semantic matching)
@@ -690,7 +690,7 @@ Return ONLY the complete rule in the exact format above. No explanations, no mar
                             'line_number': rule_count + 1
                         }
                         result['test_instruction'] = prev_comment if prev_comment else None
-                        result['suggestions'].append(f"✅ Matching rule found in local.rules (line {rule_count + 1}): Same protocol ({existing_protocol}), port ({existing_port}), and similar purpose.")
+                        result['suggestions'].append(f" Matching rule found in local.rules (line {rule_count + 1}): Same protocol ({existing_protocol}), port ({existing_port}), and similar purpose.")
                         # Don't return yet - continue to find exact text match if exists
                     
                     # Extract existing rule components (only if not already matched)
@@ -729,11 +729,11 @@ Return ONLY the complete rule in the exact format above. No explanations, no mar
             
             # Generate suggestions based on results
             if result['exact_match']:
-                result['suggestions'].append(f"✅ This rule already exists in local.rules (line {result['exact_match']['line_number']}). You can add it directly to active.rules.")
+                result['suggestions'].append(f" This rule already exists in local.rules (line {result['exact_match']['line_number']}). You can add it directly to active.rules.")
             elif result['similar_rules']:
                 # Found rules with same protocol and port - use the first one from local.rules
                 best_match = result['similar_rules'][0]
-                result['suggestions'].append(f"✅ Found matching rule in local.rules (same protocol {best_match['protocol']} and port {best_match['port']}):")
+                result['suggestions'].append(f" Found matching rule in local.rules (same protocol {best_match['protocol']} and port {best_match['port']}):")
                 result['suggestions'].append(f"  • Line {best_match['line_number']}: {best_match['rule']}")
                 result['suggestions'].append("💡 This existing rule will be used instead of the generated one.")
                 # Set this as the rule to use
@@ -747,7 +747,7 @@ Return ONLY the complete rule in the exact format above. No explanations, no mar
                     if 'test_instruction' in best_match:
                         result['test_instruction'] = best_match.get('test_instruction')
             else:
-                result['suggestions'].append("❌ No matching rule found in local.rules (same protocol and port).")
+                result['suggestions'].append("  No matching rule found in local.rules (same protocol and port).")
                 result['suggestions'].append("💡 This rule doesn't exist yet. You can:")
                 result['suggestions'].append("   1. Add it as a new rule (if it's valid)")
                 result['suggestions'].append("   2. Refine your prompt to match an existing rule")
@@ -1389,10 +1389,10 @@ if __name__ == '__main__':
             print("🔍 Looking for an available port...")
             used_port = find_free_port(start_port=8081)
             if used_port:
-                print(f"✅ Found available port: {used_port}")
+                print(f" Found available port: {used_port}")
                 httpd = socketserver.TCPServer(("", used_port), IDSHandler)
             else:
-                print("❌ Could not find an available port. Please close other applications using ports 8080-8090")
+                print("  Could not find an available port. Please close other applications using ports 8080-8090")
                 sys.exit(1)
         else:
             raise
