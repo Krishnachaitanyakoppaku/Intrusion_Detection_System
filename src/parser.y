@@ -20,6 +20,17 @@ extern FILE* yyin;
 // Function declarations
 int yylex(void);
 void yyerror(const char* msg);
+
+// Provide a portable strdup replacement for strict C99 builds
+static char* duplicate_string(const char* s) {
+    if (!s) return NULL;
+    size_t n = strlen(s) + 1;
+    char* p = (char*)malloc(n);
+    if (!p) return NULL;
+    memcpy(p, s, n);
+    return p;
+}
+#define strdup duplicate_string
 %}
 
 %union {
@@ -29,7 +40,7 @@ void yyerror(const char* msg);
     RuleOption* option;
 }
 
-%token <string> IP_ADDRESS PORT STRING
+%token <string> IP_ADDRESS PORT STRING ANY
 %token <number> NUMBER
 %token ALERT LOG PASS TCP UDP ICMP IP
 %token RIGHT_ARROW BIDIRECTIONAL
@@ -44,6 +55,12 @@ void yyerror(const char* msg);
 
 rules:
     /* empty */
+    | rules rule
+    {
+        if ($2) {
+            add_rule_to_list(&rule_list, $2);
+        }
+    }
     | rules rule SEMICOLON
     {
         if ($2) {
@@ -87,20 +104,33 @@ direction:
 
 ip_address:
     IP_ADDRESS { $$ = $1; }
+    | ANY { $$ = $1; }
     | STRING { $$ = $1; }
     ;
 
 port:
     PORT { $$ = $1; }
+    | ANY { $$ = $1; }
+    | IP_ADDRESS { $$ = $1; }
     | NUMBER { 
         $$ = malloc(16);
         sprintf($$, "%d", $1);
     }
+    | STRING { $$ = $1; }  /* allow 'any' and quoted ports */
     ;
 
 rule_options:
     /* empty */ { $$ = NULL; }
     | rule_options rule_option
+    {
+        if ($2) {
+            $2->next = $1;
+            $$ = $2;
+        } else {
+            $$ = $1;
+        }
+    }
+    | rule_options rule_option SEMICOLON
     {
         if ($2) {
             $2->next = $1;

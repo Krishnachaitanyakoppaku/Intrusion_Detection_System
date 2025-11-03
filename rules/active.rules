@@ -1,24 +1,19 @@
-# DEMO RULES - Intrusion Detection System
-# INCOMING TRAFFIC DETECTION RULES (For Testing)
-# These rules detect traffic coming TO this host (incoming)
-# Outgoing traffic (from this host) will NOT trigger these alerts
-
 # Rule 1: Detect incoming ICMP ping (incoming only)
 # Test: ping <WINDOWS-IP> from another computer
-alert icmp any any -> any any (msg:"Incoming ICMP Traceroute"; priority:5)
+alert icmp any any -> any any (msg:"Incoming ICMP Ping"; priority:5);
 
 # Rule 2: Detect incoming HTTP requests to this host (port 80)
 # Test: curl http://<WINDOWS-IP> from another computer
-alert tcp any any -> any 80 (msg:"Incoming HTTP Traffic"; priority:5)
+alert tcp any any -> any 80 (msg:"Incoming HTTP Traffic"; priority:5);
 
 # Rule 3: Detect incoming SSH connection attempts (port 22)
 # Test: ssh <WINDOWS-IP> or telnet <WINDOWS-IP> 22 from another computer
-alert tcp any any -> any 22 (msg:"Incoming SSH Brute Force Attack"; priority:3)
+alert tcp any any -> any 22 (msg:"Incoming SSH Brute Force Attack"; priority:3);
 
 # Rule 4: Detect incoming DNS queries (port 53 UDP)
 # Test: nslookup google.com <WINDOWS-IP> from another computer
-alert udp any any -> any 53 (msg:"Incoming DNS Query"; priority:5)
+alert udp any any -> any 53 (msg:"Incoming DNS Query"; priority:5);
 
 # Rule 5: Detect incoming HTTPS requests (port 443)
 # Test: curl https://<WINDOWS-IP> from another computer
-alert tcp any any -> any 443 (msg:"Incoming HTTPS Traffic"; priority:5)
+alert tcp any any -> any 443 (msg:"Incoming HTTPS Traffic"; priority:5);

@@ -155,3 +155,16 @@ void print_rule_list(Rule* rule_list) {
         printf("No rules found.\n");
     }
 }
+
+// Get option value from rule by name
+const char* get_rule_option(Rule* rule, const char* name) {
+    if (!rule || !name) return NULL;
+    RuleOption* opt = rule->options;
+    while (opt) {
+        if (opt->name && strcmp(opt->name, name) == 0) {
+            return opt->value;
+        }
+        opt = opt->next;
+    }
+    return NULL;
+}

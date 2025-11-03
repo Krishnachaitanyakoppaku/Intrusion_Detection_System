@@ -8,6 +8,17 @@
 #include "../include/ast.h"
 #include "../include/parser.h"
 
+// Provide a portable strdup replacement for strict C99 builds
+static char* duplicate_string_rules(const char* s) {
+    if (!s) return NULL;
+    size_t n = strlen(s) + 1;
+    char* p = (char*)malloc(n);
+    if (!p) return NULL;
+    memcpy(p, s, n);
+    return p;
+}
+#define strdup duplicate_string_rules
+
 // External variables for parser communication
 extern Rule* rule_list;
 extern int yylineno;
@@ -48,7 +59,7 @@ void yyerror(const char* msg);
 
 "any"       { 
     yylval.string = strdup("any");
-    return IP_ADDRESS; 
+    return ANY; 
 }
 
 [0-9]+      { 

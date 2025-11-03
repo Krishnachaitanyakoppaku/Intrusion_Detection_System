@@ -1164,7 +1164,10 @@ Return ONLY the complete rule in the exact format above. No explanations, no mar
     def get_host_ip(self):
         """Get saved host IP address from config file"""
         try:
-            config_file = '.ids_host_ip'
+            # Use absolute path to avoid failures when server is started
+            # from a different working directory (e.g., service/shortcut)
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            config_file = os.path.join(base_dir, '.ids_host_ip')
             if os.path.exists(config_file):
                 with open(config_file, 'r', encoding='utf-8') as f:
                     ip = f.read().strip()
@@ -1201,8 +1204,9 @@ Return ONLY the complete rule in the exact format above. No explanations, no mar
                 self.send_json_response({'success': False, 'error': 'Invalid IP: octets must be 0-255'})
                 return
             
-            # Save to config file
-            config_file = '.ids_host_ip'
+            # Save to config file (absolute path to be robust against CWD)
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            config_file = os.path.join(base_dir, '.ids_host_ip')
             with open(config_file, 'w', encoding='utf-8') as f:
                 f.write(ip)
             

@@ -1,9 +1,8 @@
-[2025-11-03 03:28:25] ALERT: Incoming HTTPS Traffic | 172.17.213.107:65209 -> 172.17.1.152:443 | Protocol: TCP | Priority: 5
-[2025-11-03 03:28:26] ALERT: Incoming HTTPS Traffic | 172.17.213.107:65209 -> 172.17.1.152:443 | Protocol: TCP | Priority: 5
-[2025-11-03 03:28:27] ALERT: Incoming HTTPS Traffic | 172.17.213.107:65209 -> 172.17.1.152:443 | Protocol: TCP | Priority: 5
-[2025-11-03 03:28:28] ALERT: Incoming HTTPS Traffic | 172.17.213.107:65209 -> 172.17.1.152:443 | Protocol: TCP | Priority: 5
-[2025-11-03 03:28:29] ALERT: Incoming HTTPS Traffic | 172.17.213.107:65209 -> 172.17.1.152:443 | Protocol: TCP | Priority: 5
-[2025-11-03 03:28:30] ALERT: Incoming HTTPS Traffic | 172.17.213.107:65209 -> 172.17.1.152:443 | Protocol: TCP | Priority: 5
-[2025-11-03 03:28:45] ALERT: Incoming DNS Query | 172.17.213.107:59636 -> 172.17.1.152:53 | Protocol: UDP | Priority: 5
-[2025-11-03 03:28:50] ALERT: Incoming DNS Query | 172.17.213.107:59636 -> 172.17.1.152:53 | Protocol: UDP | Priority: 5
-[2025-11-03 03:28:55] ALERT: Incoming DNS Query | 172.17.213.107:59636 -> 172.17.1.152:53 | Protocol: UDP | Priority: 5
+[2025-11-03 15:19:30] ALERT: Incoming ICMP Ping | 172.16.206.237 :0 -> 172.16.206.166:0 | Protocol: ICMP | Priority: 5
+[2025-11-03 15:19:31] ALERT: Incoming ICMP Ping | 172.16.206.237 :0 -> 172.16.206.166:0 | Protocol: ICMP | Priority: 5
+[2025-11-03 15:19:32] ALERT: Incoming ICMP Ping | 172.16.206.237 :0 -> 172.16.206.166:0 | Protocol: ICMP | Priority: 5
+[2025-11-03 15:19:33] ALERT: Incoming ICMP Ping | 172.16.206.237 :0 -> 172.16.206.166:0 | Protocol: ICMP | Priority: 5
+[2025-11-03 15:19:30] ALERT: Incoming ICMP Ping | 172.16.206.237 :0 -> 172.16.206.166:0 | Protocol: ICMP | Priority: 5
+[2025-11-03 15:19:31] ALERT: Incoming ICMP Ping | 172.16.206.237 :0 -> 172.16.206.166:0 | Protocol: ICMP | Priority: 5
+[2025-11-03 15:19:32] ALERT: Incoming ICMP Ping | 172.16.206.237 :0 -> 172.16.206.166:0 | Protocol: ICMP | Priority: 5
+[2025-11-03 15:19:33] ALERT: Incoming ICMP Ping | 172.16.206.237 :0 -> 172.16.206.166:0 | Protocol: ICMP | Priority: 5
