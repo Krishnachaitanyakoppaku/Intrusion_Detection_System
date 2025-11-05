@@ -94,7 +94,10 @@ extern ParsedPacket* parsed_packet;
 }
 
 . {
-    // Any other character
+    // Any other character - report as error
+    fprintf(stderr, "ERROR: Packet log lexical error at line %d: unexpected character '%c' (ASCII: %d)\n", 
+            pktlineno, pkttext[0], (int)pkttext[0]);
+    fprintf(stderr, "       Expected: valid log format tokens\n");
     return pkttext[0];
 }
 

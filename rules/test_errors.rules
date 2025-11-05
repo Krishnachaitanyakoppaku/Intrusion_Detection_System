@@ -1,0 +1,48 @@
+# ERROR TEST FILE - Contains various errors to test parser error detection
+# This file demonstrates the types of errors that can be detected
+
+# Error 1: Missing semicolon at end of rule
+alert tcp any any -> any 80 (msg:"Test"; priority:5)
+
+# Error 2: Invalid IP address format (octet > 255)
+alert tcp 300.1.1.1 any -> any 80 (msg:"Invalid IP"; priority:5);
+
+# Error 3: Invalid port number (out of range > 65535)
+alert tcp any any -> any 99999 (msg:"Invalid Port"; priority:5);
+
+# Error 4: Missing opening parenthesis
+alert tcp any any -> any 80 msg:"Missing LPAREN"; priority:5);
+
+# Error 5: Missing closing parenthesis
+alert tcp any any -> any 80 (msg:"Missing RPAREN"; priority:5;
+
+# Error 6: Missing colon in option
+alert tcp any any -> any 80 (msg "Missing colon"; priority:5);
+
+# Error 7: Invalid protocol (typo)
+alert tcpp any any -> any 80 (msg:"Invalid protocol"; priority:5);
+
+# Error 8: Invalid action (typo)
+alret tcp any any -> any 80 (msg:"Invalid action"; priority:5);
+
+# Error 9: Missing direction arrow
+alert tcp any any any 80 (msg:"Missing direction"; priority:5);
+
+# Error 10: Invalid IP address (negative octet)
+alert tcp -1.1.1.1 any -> any 80 (msg:"Negative IP"; priority:5);
+
+# Error 11: Invalid port (negative)
+alert tcp any any -> any -80 (msg:"Negative port"; priority:5);
+
+# Error 12: Missing semicolon between options
+alert tcp any any -> any 80 (msg:"Test" priority:5);
+
+# Error 13: Extra characters/invalid token
+alert tcp any any -> any 80 (msg:"Test"; priority:5); invalid_token
+
+# Error 14: Invalid IP format (too few octets)
+alert tcp 192.168.1 any -> any 80 (msg:"Incomplete IP"; priority:5);
+
+# Error 15: Missing port value
+alert tcp any any -> any (msg:"Missing port"; priority:5);
+

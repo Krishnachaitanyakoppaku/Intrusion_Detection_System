@@ -3,13 +3,15 @@
 
 CC = gcc
 CFLAGS = -I. -g -Wall -Wextra -std=c99 -fPIC
-LDFLAGS = -lfl -ly
+LDFLAGS = -lfl
 
 # Directories
 SRC_DIR = .
 BUILD_DIR = ../build/firewall
+BIN_DIR = ../bin
 TARGET_LIB = $(BUILD_DIR)/libfirewall_parser.so
 TARGET_BIN = $(BUILD_DIR)/firewall_parser_test
+FIREWALL_ANALYZER = $(BIN_DIR)/firewall_analyzer
 
 # Source files
 LEX_SRC = $(SRC_DIR)/firewall_lexer.l
@@ -26,9 +28,9 @@ LEX_OBJ = $(BUILD_DIR)/lexer.o
 YACC_OBJ = $(BUILD_DIR)/parser.o
 WRAPPER_OBJ = $(BUILD_DIR)/wrapper.o
 
-.PHONY: all clean install
+.PHONY: all clean install firewall_analyzer
 
-all: $(TARGET_LIB) $(TARGET_BIN)
+all: $(TARGET_LIB) $(TARGET_BIN) $(FIREWALL_ANALYZER)
 
 # Create shared library
 $(TARGET_LIB): $(LEX_OBJ) $(YACC_OBJ) $(WRAPPER_OBJ)
@@ -42,8 +44,34 @@ $(TARGET_BIN): $(LEX_OBJ) $(YACC_OBJ) $(WRAPPER_OBJ) $(SRC_DIR)/test_main.c
 	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -o $@ $(LEX_OBJ) $(YACC_OBJ) $(WRAPPER_OBJ) $(SRC_DIR)/test_main.c $(LDFLAGS)
 
-# Generate lexer from .l file
-$(LEX_GEN): $(LEX_SRC)
+# Create firewall analyzer binary (similar to bin/packet_analyzer)
+FIREWALL_ANALYZER_OBJ = $(BUILD_DIR)/firewall_analyzer.o
+
+$(FIREWALL_ANALYZER_OBJ): $(SRC_DIR)/firewall_analyzer.c firewall_parser.h
+	@echo "Compiling firewall analyzer..."
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -I$(BUILD_DIR) -c $(SRC_DIR)/firewall_analyzer.c -o $@
+
+$(FIREWALL_ANALYZER): $(LEX_OBJ) $(YACC_OBJ) $(FIREWALL_ANALYZER_OBJ)
+	@echo "Linking firewall analyzer..."
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $(LEX_OBJ) $(YACC_OBJ) $(FIREWALL_ANALYZER_OBJ) $(LDFLAGS)
+
+# Generate parser from .y file (must be first)
+$(YACC_GEN) $(YACC_HEADER): $(YACC_SRC)
+	@echo "Generating parser from $(YACC_SRC)..."
+	@mkdir -p $(BUILD_DIR)
+	@if command -v bison >/dev/null 2>&1; then \
+		bison -d -o $(YACC_GEN) $(YACC_SRC); \
+		mv $(BUILD_DIR)/firewall_parser.tab.h $(YACC_HEADER) 2>/dev/null || true; \
+	else \
+		echo "Error: bison not found. Please install bison:"; \
+		echo "  sudo apt-get install bison"; \
+		exit 1; \
+	fi
+
+# Generate lexer from .l file (after parser header is generated)
+$(LEX_GEN): $(LEX_SRC) $(YACC_HEADER)
 	@echo "Generating lexer from $(LEX_SRC)..."
 	@mkdir -p $(BUILD_DIR)
 	@if command -v flex >/dev/null 2>&1; then \
@@ -54,24 +82,11 @@ $(LEX_GEN): $(LEX_SRC)
 		exit 1; \
 	fi
 
-# Compile lexer
+# Compile lexer (need parser header first)
 $(LEX_OBJ): $(LEX_GEN) $(YACC_HEADER) firewall_parser.h
 	@echo "Compiling lexer..."
-	$(CC) $(CFLAGS) -I$(BUILD_DIR) -c $(LEX_GEN) -o $@
-
-# Generate parser from .y file
-$(YACC_GEN) $(YACC_HEADER): $(YACC_SRC)
-	@echo "Generating parser from $(YACC_SRC)..."
-	@mkdir -p $(BUILD_DIR)
-	@if command -v bison >/dev/null 2>&1; then \
-		cd $(BUILD_DIR) && bison -d -o firewall_parser.tab.c ../firewall_parser.y; \
-		mv $(BUILD_DIR)/firewall_parser.tab.h $(YACC_HEADER) 2>/dev/null || \
-		cp $(BUILD_DIR)/firewall_parser.tab.h $(YACC_HEADER) 2>/dev/null || true; \
-	else \
-		echo "Error: bison not found. Please install bison:"; \
-		echo "  sudo apt-get install bison"; \
-		exit 1; \
-	fi
+	@test -f $(YACC_HEADER) || (echo "Error: $(YACC_HEADER) not found"; exit 1)
+	$(CC) $(CFLAGS) -I$(BUILD_DIR) -I. -include $(YACC_HEADER) -c $(LEX_GEN) -o $@
 
 # Compile parser
 $(YACC_OBJ): $(YACC_GEN) firewall_parser.h

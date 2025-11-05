@@ -7,11 +7,11 @@
 
 // Firewall Event Structure
 typedef struct FirewallEvent {
-    char* event_type;          // e.g., "ufw_reset", "iptables_flush"
+    char* event_type;          // e.g., "ufw_reset"
     char* severity;            // "critical", "high", "medium", "low"
     char* description;          // Human-readable description
     char* timestamp;            // Extracted timestamp
-    char* source_ip;            // Source IP address
+    char* source_ip;            // Source IP address (last IP in log line)
     char* hostname;             // Hostname
     char* command;              // Extracted command
     char* raw_line;             // Original log line
@@ -34,5 +34,3 @@ extern char* yytext;
 extern FILE* yyin;
 
 #endif /* FIREWALL_PARSER_H */
-
-

@@ -71,14 +71,32 @@ class FirewallEventParser:
                 return None
         
         try:
-            # Call C function
-            result = self.lib.parse_log_line_to_json(line.encode('utf-8'))
-            if not result:
+            # Call C function - it returns a char* (c_char_p)
+            result_ptr = self.lib.parse_log_line_to_json(line.encode('utf-8'))
+            if not result_ptr:
                 return None
             
-            # Parse JSON result
-            json_str = result.decode('utf-8')
-            events = json.loads(json_str)
+            # Convert C string pointer to Python bytes
+            json_bytes = ctypes.string_at(result_ptr)
+            if not json_bytes:
+                return None
+            
+            # Decode with error handling
+            try:
+                json_str = json_bytes.decode('utf-8', errors='replace')
+            except Exception:
+                json_str = json_bytes.decode('latin-1', errors='replace')
+            
+            # Clean up any null bytes or invalid characters
+            json_str = json_str.rstrip('\0')
+            
+            # Debug: print first 200 chars of JSON if there's an error
+            try:
+                events = json.loads(json_str)
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error at position {e.pos}: {json_str[max(0, e.pos-50):e.pos+50]}")
+                print(f"Full JSON (first 300 chars): {json_str[:300]}")
+                raise
             
             if events and len(events) > 0:
                 event = events[0]  # Take first event

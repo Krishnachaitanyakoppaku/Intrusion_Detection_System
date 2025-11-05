@@ -1,0 +1,64 @@
+# PACKET LOG ERROR TEST FILE
+# Contains various errors that can occur when parsing all_packets.log
+# Format: YYYY-MM-DD HH:MM:SS | SRC_IP:SRC_PORT -> DST_IP:DST_PORT | PROTOCOL | Size: XXB
+
+# Error 1: Missing pipe separator
+2025-11-05 01:02:21  35.153.110.88:443 -> 192.168.2.14:60037 TCP Size: 66B
+
+# Error 2: Invalid timestamp format (wrong date format)
+2025/11/05 01:02:21 | 35.153.110.88:443 -> 192.168.2.14:60037 | TCP | Size: 66B
+
+# Error 3: Invalid IP address (octet > 255)
+2025-11-05 01:02:21 | 300.1.1.1:443 -> 192.168.2.14:60037 | TCP | Size: 66B
+
+# Error 4: Invalid port number (> 65535)
+2025-11-05 01:02:21 | 35.153.110.88:99999 -> 192.168.2.14:60037 | TCP | Size: 66B
+
+# Error 5: Missing direction arrow (->)
+2025-11-05 01:02:21 | 35.153.110.88:443 192.168.2.14:60037 | TCP | Size: 66B
+
+# Error 6: Missing colon in IP:PORT
+2025-11-05 01:02:21 | 35.153.110.88443 -> 192.168.2.14:60037 | TCP | Size: 66B
+
+# Error 7: Invalid protocol
+2025-11-05 01:02:21 | 35.153.110.88:443 -> 192.168.2.14:60037 | HTTP | Size: 66B
+
+# Error 8: Invalid packet size (> 65535)
+2025-11-05 01:02:21 | 35.153.110.88:443 -> 192.168.2.14:60037 | TCP | Size: 99999B
+
+# Error 9: Missing "Size:" keyword
+2025-11-05 01:02:21 | 35.153.110.88:443 -> 192.168.2.14:60037 | TCP | 66B
+
+# Error 10: Missing protocol field
+2025-11-05 01:02:21 | 35.153.110.88:443 -> 192.168.2.14:60037 | Size: 66B
+
+# Error 11: Incomplete IP address (missing octet)
+2025-11-05 01:02:21 | 192.168.2:443 -> 192.168.2.14:60037 | TCP | Size: 66B
+
+# Error 12: Negative port
+2025-11-05 01:02:21 | 35.153.110.88:-443 -> 192.168.2.14:60037 | TCP | Size: 66B
+
+# Error 13: Missing timestamp
+| 35.153.110.88:443 -> 192.168.2.14:60037 | TCP | Size: 66B
+
+# Error 14: Invalid timestamp format (wrong time format)
+2025-11-05 1:2:21 | 35.153.110.88:443 -> 192.168.2.14:60037 | TCP | Size: 66B
+
+# Error 15: Extra characters/invalid token
+2025-11-05 01:02:21 | 35.153.110.88:443 -> 192.168.2.14:60037 | TCP | Size: 66B | extra_token
+
+# Error 16: Invalid size format (missing B)
+2025-11-05 01:02:21 | 35.153.110.88:443 -> 192.168.2.14:60037 | TCP | Size: 66
+
+# Error 17: Empty line (should be handled gracefully)
+# (empty line)
+
+# Error 18: Unknown packet with invalid size format
+2025-11-05 01:02:22 | Unknown packet | Size: -100B
+
+# Error 19: Invalid IP address (negative octet)
+2025-11-05 01:02:21 | -1.1.1.1:443 -> 192.168.2.14:60037 | TCP | Size: 66B
+
+# Error 20: Wrong separator character
+2025-11-05 01:02:21 / 35.153.110.88:443 -> 192.168.2.14:60037 / TCP / Size: 66B
+

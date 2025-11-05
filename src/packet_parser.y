@@ -122,10 +122,13 @@ protocol_type:
 // Global parsed packet structure
 ParsedPacket* parsed_packet = NULL;
 
-// Error handling function
+// Error handling function with enhanced error messages
 void yyerror(const char* msg) {
-    fprintf(stderr, "Parse error at line %d: %s\n", yylineno, msg);
-    fprintf(stderr, "Near: %s\n", yytext ? yytext : "(null)");
+    fprintf(stderr, "ERROR: Packet log parse error at line %d: %s\n", yylineno, msg);
+    if (yytext && strlen(yytext) > 0) {
+        fprintf(stderr, "       Unexpected token near: '%s'\n", yytext);
+    }
+    fprintf(stderr, "       Expected format: YYYY-MM-DD HH:MM:SS | SRC_IP:SRC_PORT -> DST_IP:DST_PORT | PROTOCOL | Size: XXB\n");
 }
 
 // Initialize parsed packet
