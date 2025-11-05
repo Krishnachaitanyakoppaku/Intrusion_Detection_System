@@ -40,7 +40,7 @@ FirewallEvent* last_event = NULL;
 
 %token <string> TIMESTAMP IP_ADDRESS HOSTNAME
 %token <number> NUMBER
-%token UFW_RESET SUDO_KEYWORD
+%token UFW_RESET IPTABLES CHMOD_777
 %token COLON SEMICOLON AT SLASH DASH EQUALS NEWLINE
 
 %type <event> log_entry firewall_command
@@ -77,7 +77,7 @@ tokens_optional:
     ;
 
 any_token:
-    TIMESTAMP | IP_ADDRESS | HOSTNAME | NUMBER | COLON | SEMICOLON | AT | SLASH | DASH | EQUALS | SUDO_KEYWORD | NEWLINE
+    TIMESTAMP | IP_ADDRESS | HOSTNAME | NUMBER | COLON | SEMICOLON | AT | SLASH | DASH | EQUALS | NEWLINE
     ;
 
 log_entry:
@@ -156,18 +156,11 @@ firewall_command:
     UFW_RESET {
         $$ = create_firewall_event("ufw_reset", "critical", "UFW firewall rules were reset");
     }
-    | SUDO_KEYWORD firewall_command {
-        $$ = $2;
-        if ($$) {
-            if ($$->severity) free($$->severity);
-            $$->severity = strdup("critical");
-            if ($$->description) {
-                char* new_desc = malloc(strlen($$->description) + 30);
-                sprintf(new_desc, "Root/sudo: %s", $$->description);
-                free($$->description);
-                $$->description = new_desc;
-            }
-        }
+    | IPTABLES {
+        $$ = create_firewall_event("iptables", "critical", "IPTables command detected");
+    }
+    | CHMOD_777 {
+        $$ = create_firewall_event("chmod_777", "critical", "Dangerous file permissions change detected (chmod 777)");
     }
     ;
 
@@ -424,4 +417,6 @@ void free_firewall_events(FirewallEvent* events) {
         current = next;
     }
 }
+
+
 

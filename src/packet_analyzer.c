@@ -75,14 +75,17 @@ int main(int argc, char* argv[]) {
             continue;
         }
         
+        // Validate parsed packet has required fields
+        if (!packet->protocol) {
+            free_parsed_packet(packet);
+            continue;
+        }
+        
         packet_count++;
         
         // Match against rules
-        if (packet->protocol && strcmp(packet->protocol, "Unknown") != 0) {
+        if (strcmp(packet->protocol, "Unknown") != 0) {
             match_packet_against_rules(packet, rule_list);
-            
-            // Check if alert was written (simplified check)
-            // In a real implementation, you might track this differently
         }
         
         // Free parsed packet
@@ -99,6 +102,11 @@ int main(int argc, char* argv[]) {
     
     printf("\n\nAnalysis complete!\n");
     printf("Processed %d packets.\n", packet_count);
+    if (packet_count > 0) {
+        printf("Successfully parsed %d packets from log file.\n", packet_count);
+    } else {
+        printf("No packets found in log file.\n");
+    }
     printf("Check logs/alerts.log for generated alerts.\n");
     
     // Cleanup

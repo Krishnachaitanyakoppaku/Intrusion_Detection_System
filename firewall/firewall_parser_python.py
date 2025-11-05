@@ -94,17 +94,22 @@ class FirewallEventParser:
             try:
                 events = json.loads(json_str)
             except json.JSONDecodeError as e:
-                print(f"JSON decode error at position {e.pos}: {json_str[max(0, e.pos-50):e.pos+50]}")
-                print(f"Full JSON (first 300 chars): {json_str[:300]}")
+                print(f"[DEBUG] JSON decode error at position {e.pos}: {json_str[max(0, e.pos-50):e.pos+50]}")
+                print(f"[DEBUG] Full JSON (first 300 chars): {json_str[:300]}")
                 raise
             
             if events and len(events) > 0:
                 event = events[0]  # Take first event
                 event['raw_line'] = line.strip()
                 return event
+            else:
+                # Log when parser returns empty result for a non-empty line
+                if line.strip():
+                    print(f"[DEBUG] Parser returned empty result for line: {line.strip()[:80]}")
             
         except Exception as e:
-            print(f"Error parsing log line with C parser: {e}")
+            print(f"[DEBUG] Error parsing log line with C parser: {e}")
+            print(f"[DEBUG] Problematic line: {line.strip()[:100]}")
             return None
         
         return None
@@ -114,18 +119,34 @@ class FirewallEventParser:
         events = []
         
         if not os.path.exists(self.log_file):
+            print(f"[DEBUG] Firewall log file not found: {self.log_file}")
             return events
         
+        print(f"[DEBUG] Reading firewall log from: {self.log_file}")
         try:
             with open(self.log_file, 'r', encoding='utf-8', errors='ignore') as f:
                 lines = f.readlines()
+                total_lines = len(lines)
+                print(f"[DEBUG] Read {total_lines} lines from firewall.log")
+                
                 # Process from most recent
-                for line in reversed(lines[-max_lines:]):
+                lines_to_process = lines[-max_lines:] if len(lines) > max_lines else lines
+                print(f"[DEBUG] Processing {len(lines_to_process)} lines (most recent)")
+                
+                parsed_count = 0
+                for idx, line in enumerate(reversed(lines_to_process)):
+                    if not line.strip():
+                        continue
                     event = self.parse_log_line(line)
                     if event:
+                        parsed_count += 1
                         events.append(event)
+                        if parsed_count <= 3:  # Show first 3 parsed events
+                            print(f"[DEBUG] Parsed event {parsed_count}: {event.get('event_type')} - {event.get('severity')}")
+                
+                print(f"[DEBUG] Successfully parsed {parsed_count} events out of {len([l for l in lines_to_process if l.strip()])} non-empty lines")
         except Exception as e:
-            print(f"Error parsing log file: {e}")
+            print(f"[DEBUG] Error parsing log file: {e}")
         
         # Return in chronological order (oldest first)
         return list(reversed(events))

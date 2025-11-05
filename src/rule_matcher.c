@@ -101,6 +101,10 @@ int packet_matches_rule(ParsedPacket* packet, Rule* rule) {
     }
     
     // Check protocol
+    if (!rule->protocol || !packet->protocol) {
+        return 0;
+    }
+    
     if (!protocol_matches(rule->protocol, packet->protocol)) {
         return 0;
     }
@@ -116,7 +120,11 @@ int packet_matches_rule(ParsedPacket* packet, Rule* rule) {
     // Check direction and IP/port matching
     // For "->" direction: check src and dst
     // For "<>" direction: check either direction
-    if (rule->direction && strcmp(rule->direction, "->") == 0) {
+    if (!rule->direction) {
+        return 0;
+    }
+    
+    if (strcmp(rule->direction, "->") == 0) {
         // One-way: source -> destination
         if (!ip_matches(rule->source_ip, packet->src_ip) ||
             !ip_matches(rule->dest_ip, packet->dst_ip)) {
@@ -216,6 +224,8 @@ void match_packet_against_rules(ParsedPacket* packet, Rule* rule_list) {
         if (current->action && strcmp(current->action, "alert") == 0) {
             if (packet_matches_rule(packet, current)) {
                 write_alert(packet, current);
+                // Stop after first match to prevent duplicate alerts for the same packet
+                return;
             }
         }
         current = current->next;

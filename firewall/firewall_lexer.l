@@ -55,14 +55,19 @@ ufw[ \t]+reset {
     return UFW_RESET;
 }
 
+iptables[ \t] {
+    return IPTABLES;
+}
+
+chmod[ \t]+777 {
+    return CHMOD_777;
+}
+
 [a-zA-Z][a-zA-Z0-9._-]* {
     yylval.string = strdup(yytext);
     return HOSTNAME;
 }
 
-sudo {
-    return SUDO_KEYWORD;
-}
 
 [ \t]+ {
     /* ignore whitespace */

@@ -212,6 +212,15 @@
             font-family: 'Courier New', monospace;
             white-space: pre-wrap;
             word-break: break-all;
+            width: 100%;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .rule-display:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         .rules-list {
             background: #f8f9fa;
@@ -323,7 +332,7 @@
                 
                 <div class="input-group" style="margin-top: 20px;">
                     <label for="dsl-rule">Generated DSL Rule:</label>
-                    <div class="rule-display" id="dsl-rule">Generated rules will appear here...</div>
+                    <textarea id="dsl-rule" rows="4" class="rule-display" style="resize: vertical; min-height: 100px;">Generated rules will appear here...</textarea>
                     <div id="rule-suggestions" style="display: none; margin-top: 10px;"></div>
                 </div>
                 
@@ -527,7 +536,7 @@
             const dslRuleElement = document.getElementById('dsl-rule');
             const suggestionsElement = document.getElementById('rule-suggestions');
             
-            dslRuleElement.textContent = ' Gemini AI is processing your request...';
+            dslRuleElement.value = ' Gemini AI is processing your request...';
             if (suggestionsElement) {
                 suggestionsElement.innerHTML = '';
                 suggestionsElement.style.display = 'none';
@@ -540,8 +549,10 @@
                 // Store response globally for addRule to access
                 lastGeminiResponse = data;
                 
-                // Display the generated rule
-                dslRuleElement.textContent = data.dsl_rule;
+                // Display the matched rule from local.rules if found, otherwise use generated rule
+                // If matched_rule exists, use that instead of generated rule
+                const displayRule = data.matched_rule || data.dsl_rule || '';
+                dslRuleElement.value = displayRule;
                 
                 // Show test instruction if available
                 let testInstructionHtml = '';
@@ -553,23 +564,46 @@
                 }
                 
                 // Show suggestions based on rule check
-                if (data.exists_in_local) {
-                    // Rule exists - show success and add option
+                if (data.exists_in_local || data.matched_rule) {
+                    // Rule found in local.rules - show the matched rule
                     dslRuleElement.style.border = '2px solid #28a745';
                     dslRuleElement.style.backgroundColor = '#d4edda';
                     
                     if (suggestionsElement) {
-                        suggestionsElement.innerHTML = '<div style="color: #155724; padding: 10px; background: #d4edda; border-radius: 4px; margin-top: 10px;">' +
-                            '<strong> Rule Found in Catalog!</strong><br>' +
-                            (data.suggestions || []).join('<br>') +
-                            '</div>' + testInstructionHtml;
+                        let messageHtml = '<div style="color: #155724; padding: 15px; background: #d4edda; border-radius: 4px; margin-top: 10px; border-left: 4px solid #28a745;">' +
+                            '<strong>✓ Rule Found in local.rules Catalog!</strong><br><br>';
+                        
+                        if (data.matched_rule) {
+                            messageHtml += '<strong>Matched by:</strong> Protocol and Port (ignoring message and priority)<br><br>';
+                            messageHtml += '<strong>Using rule from local.rules:</strong><br>';
+                            messageHtml += '<div style="background: #fff; padding: 10px; border-radius: 4px; margin: 8px 0; font-family: monospace; font-size: 0.9em; word-break: break-all;">' + escapeHtml(data.matched_rule) + '</div>';
+                            
+                            if (data.generated_rule && data.generated_rule !== data.matched_rule) {
+                                messageHtml += '<br><strong>Original generated rule (for reference):</strong><br>';
+                                messageHtml += '<div style="background: #f8f9fa; padding: 8px; border-radius: 4px; margin: 5px 0; font-family: monospace; font-size: 0.85em; color: #666; word-break: break-all;">' + escapeHtml(data.generated_rule) + '</div>';
+                            }
+                        }
+                        
+                        if (data.suggestions && data.suggestions.length > 0) {
+                            messageHtml += '<br><div style="margin-top: 10px; padding: 8px; background: #fff3cd; border-left: 3px solid #ffc107; border-radius: 3px; color: #856404; font-size: 0.9em;">';
+                            data.suggestions.forEach(s => {
+                                messageHtml += escapeHtml(s) + '<br>';
+                            });
+                            messageHtml += '</div>';
+                        }
+                        
+                        messageHtml += '<br><strong>💡 Note:</strong> You can edit this rule before adding it to active.rules.<br>';
+                        messageHtml += '</div>';
+                        
+                        messageHtml += testInstructionHtml;
+                        suggestionsElement.innerHTML = messageHtml;
                         suggestionsElement.style.display = 'block';
                     }
                     
-                    // Show "Add from Catalog" button instead of regular add
+                    // Show "Add Rule from Catalog" button
                     const addBtn = document.querySelector('button[onclick="addRule()"]');
                     if (addBtn) {
-                        addBtn.textContent = ' Add Existing Rule to Engine';
+                        addBtn.textContent = ' Add Rule from Catalog to Engine';
                         addBtn.style.backgroundColor = '#28a745';
                     }
                 } else if (data.similar_rules && data.similar_rules.length > 0) {
@@ -622,7 +656,7 @@
                 }
             } catch (error) {
                 console.error('Error converting rule:', error);
-                dslRuleElement.textContent = ' Error: Could not connect to Gemini AI. Please try again.';
+                dslRuleElement.value = ' Error: Could not connect to Gemini AI. Please try again.';
                 dslRuleElement.style.border = '2px solid #dc3545';
                 dslRuleElement.style.backgroundColor = '#f8d7da';
                 if (suggestionsElement) {
@@ -633,7 +667,7 @@
         }
 
         async function addRule() {
-            const dslRule = document.getElementById('dsl-rule').textContent;
+            const dslRule = document.getElementById('dsl-rule').value;
             if (!dslRule || dslRule.includes('Generated rules will appear here') || dslRule.includes('Gemini AI is processing')) { alert('Please generate a DSL rule first'); return; }
             
             // Get test instruction from last Gemini response
@@ -648,13 +682,32 @@
                     requestData.test_instruction = testInstruction;
                 }
                 
+                console.log('[DEBUG] Sending rule to add:', dslRule);
                 const response = await fetch('/api/add_rule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestData) });
-                const data = await response.json();
-                if (data.status === 'added') { 
-                    alert(' Rule added successfully to the engine!'); 
+                
+                console.log('[DEBUG] Response status:', response.status);
+                console.log('[DEBUG] Response ok:', response.ok);
+                
+                // Read response as text first, then parse JSON
+                const responseText = await response.text();
+                console.log('[DEBUG] Response text:', responseText);
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                    console.log('[DEBUG] Response data:', data);
+                } catch (parseError) {
+                    console.error('[ERROR] Failed to parse JSON:', parseError);
+                    alert('❌ Error: Invalid response from server. Status: ' + response.status + '\n\nResponse: ' + responseText.substring(0, 200));
+                    return;
+                }
+                
+                // Handle response based on status code and data
+                if (response.ok && data.status === 'added') { 
+                    alert('✅ Rule added successfully to the engine!'); 
                     loadRules(); 
                     // Reset display
-                    document.getElementById('dsl-rule').textContent = 'Generated rules will appear here...';
+                    document.getElementById('dsl-rule').value = 'Generated rules will appear here...';
                     document.getElementById('dsl-rule').style.border = '1px solid #dee2e6';
                     document.getElementById('dsl-rule').style.backgroundColor = '#f8f9fa';
                     const suggestionsElement = document.getElementById('rule-suggestions');
@@ -668,10 +721,20 @@
                         addBtn.textContent = ' Add Rule to Engine';
                         addBtn.style.backgroundColor = '#28a745';
                     }
+                } else if (response.ok && data.status === 'exists') {
+                    alert('⚠️ Rule already exists in active.rules file!\n\nThe rule you tried to add is already present in the active rules list.');
+                } else if (data.status === 'error' || !response.ok) {
+                    const errorMsg = data.error || data.message || 'Failed to add rule. Please check the rule syntax.';
+                    alert('❌ Error: ' + errorMsg + '\n\nStatus Code: ' + response.status);
+                    console.error('[ERROR] Add rule failed:', data);
+                } else {
+                    console.error('[ERROR] Unexpected response format:', data);
+                    alert('❌ Unexpected response: ' + JSON.stringify(data) + '\n\nStatus: ' + response.status);
                 }
             } catch (error) {
-                console.error('Error adding rule:', error);
-                alert(' Error adding rule. Please try again.');
+                console.error('[ERROR] Error adding rule:', error);
+                console.error('[ERROR] Error details:', error.message, error.stack);
+                alert('❌ Error adding rule: ' + error.message + '\n\nPlease check the browser console for more details.');
             }
         }
 
@@ -947,10 +1010,14 @@
                 if (severity) {
                     url += `&severity=${severity}`;
                 }
+                console.log('Loading firewall events from:', url);
                 const response = await fetch(url);
+                console.log('Response status:', response.status);
                 const data = await response.json();
+                console.log('Firewall events data:', data);
                 
                 if (data.error) {
+                    console.error('Firewall API error:', data.error);
                     document.getElementById('firewall-events-container').innerHTML = 
                         `<p style="text-align: center; color: #dc3545; padding: 20px;">Error: ${data.error}</p>`;
                     return;
@@ -958,15 +1025,17 @@
                 
                 // Update stats
                 if (data.stats) {
+                    console.log('Updating stats:', data.stats);
                     updateFirewallStats(data.stats);
                 }
                 
                 // Display events
+                console.log('Displaying events:', data.events?.length || 0, 'events');
                 displayFirewallEvents(data.events || []);
             } catch (error) {
                 console.error('Error loading firewall events:', error);
                 document.getElementById('firewall-events-container').innerHTML = 
-                    '<p style="text-align: center; color: #dc3545; padding: 20px;">Error loading firewall events. Make sure firewall parser is available.</p>';
+                    `<p style="text-align: center; color: #dc3545; padding: 20px;">Error loading firewall events: ${error.message}. Make sure firewall parser is available.</p>`;
             }
         }
         

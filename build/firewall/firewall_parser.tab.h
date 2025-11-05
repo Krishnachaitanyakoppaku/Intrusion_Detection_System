@@ -71,14 +71,23 @@ extern int yydebug;
     HOSTNAME = 260,                /* HOSTNAME  */
     NUMBER = 261,                  /* NUMBER  */
     UFW_RESET = 262,               /* UFW_RESET  */
-    SUDO_KEYWORD = 263,            /* SUDO_KEYWORD  */
-    COLON = 264,                   /* COLON  */
-    SEMICOLON = 265,               /* SEMICOLON  */
-    AT = 266,                      /* AT  */
-    SLASH = 267,                   /* SLASH  */
-    DASH = 268,                    /* DASH  */
-    EQUALS = 269,                  /* EQUALS  */
-    NEWLINE = 270                  /* NEWLINE  */
+    UFW_DISABLE = 263,             /* UFW_DISABLE  */
+    UFW_ENABLE = 264,              /* UFW_ENABLE  */
+    SUDO_KEYWORD = 265,            /* SUDO_KEYWORD  */
+    IPTABLES_FLUSH = 266,          /* IPTABLES_FLUSH  */
+    IPTABLES_DELETE = 267,         /* IPTABLES_DELETE  */
+    IPTABLES_RULE_CHANGE = 268,    /* IPTABLES_RULE_CHANGE  */
+    FIREWALL_RELOAD = 269,         /* FIREWALL_RELOAD  */
+    FIREWALL_STOP = 270,           /* FIREWALL_STOP  */
+    CHMOD_DANGEROUS = 271,         /* CHMOD_DANGEROUS  */
+    SU_ROOT = 272,                 /* SU_ROOT  */
+    COLON = 273,                   /* COLON  */
+    SEMICOLON = 274,               /* SEMICOLON  */
+    AT = 275,                      /* AT  */
+    SLASH = 276,                   /* SLASH  */
+    DASH = 277,                    /* DASH  */
+    EQUALS = 278,                  /* EQUALS  */
+    NEWLINE = 279                  /* NEWLINE  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -93,7 +102,7 @@ union YYSTYPE
     char* string;
     FirewallEvent* event;
 
-#line 97 "../build/firewall/firewall_parser.tab.h"
+#line 106 "../build/firewall/firewall_parser.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

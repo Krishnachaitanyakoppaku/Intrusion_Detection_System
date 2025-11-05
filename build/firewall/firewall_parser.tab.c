@@ -127,19 +127,28 @@ enum yysymbol_kind_t
   YYSYMBOL_HOSTNAME = 5,                   /* HOSTNAME  */
   YYSYMBOL_NUMBER = 6,                     /* NUMBER  */
   YYSYMBOL_UFW_RESET = 7,                  /* UFW_RESET  */
-  YYSYMBOL_SUDO_KEYWORD = 8,               /* SUDO_KEYWORD  */
-  YYSYMBOL_COLON = 9,                      /* COLON  */
-  YYSYMBOL_SEMICOLON = 10,                 /* SEMICOLON  */
-  YYSYMBOL_AT = 11,                        /* AT  */
-  YYSYMBOL_SLASH = 12,                     /* SLASH  */
-  YYSYMBOL_DASH = 13,                      /* DASH  */
-  YYSYMBOL_EQUALS = 14,                    /* EQUALS  */
-  YYSYMBOL_NEWLINE = 15,                   /* NEWLINE  */
-  YYSYMBOL_YYACCEPT = 16,                  /* $accept  */
-  YYSYMBOL_log_file = 17,                  /* log_file  */
-  YYSYMBOL_tokens_optional = 18,           /* tokens_optional  */
-  YYSYMBOL_any_token = 19,                 /* any_token  */
-  YYSYMBOL_firewall_command = 20           /* firewall_command  */
+  YYSYMBOL_UFW_DISABLE = 8,                /* UFW_DISABLE  */
+  YYSYMBOL_UFW_ENABLE = 9,                 /* UFW_ENABLE  */
+  YYSYMBOL_SUDO_KEYWORD = 10,              /* SUDO_KEYWORD  */
+  YYSYMBOL_IPTABLES_FLUSH = 11,            /* IPTABLES_FLUSH  */
+  YYSYMBOL_IPTABLES_DELETE = 12,           /* IPTABLES_DELETE  */
+  YYSYMBOL_IPTABLES_RULE_CHANGE = 13,      /* IPTABLES_RULE_CHANGE  */
+  YYSYMBOL_FIREWALL_RELOAD = 14,           /* FIREWALL_RELOAD  */
+  YYSYMBOL_FIREWALL_STOP = 15,             /* FIREWALL_STOP  */
+  YYSYMBOL_CHMOD_DANGEROUS = 16,           /* CHMOD_DANGEROUS  */
+  YYSYMBOL_SU_ROOT = 17,                   /* SU_ROOT  */
+  YYSYMBOL_COLON = 18,                     /* COLON  */
+  YYSYMBOL_SEMICOLON = 19,                 /* SEMICOLON  */
+  YYSYMBOL_AT = 20,                        /* AT  */
+  YYSYMBOL_SLASH = 21,                     /* SLASH  */
+  YYSYMBOL_DASH = 22,                      /* DASH  */
+  YYSYMBOL_EQUALS = 23,                    /* EQUALS  */
+  YYSYMBOL_NEWLINE = 24,                   /* NEWLINE  */
+  YYSYMBOL_YYACCEPT = 25,                  /* $accept  */
+  YYSYMBOL_log_file = 26,                  /* log_file  */
+  YYSYMBOL_tokens_optional = 27,           /* tokens_optional  */
+  YYSYMBOL_any_token = 28,                 /* any_token  */
+  YYSYMBOL_firewall_command = 29           /* firewall_command  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -467,19 +476,19 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  2
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   29
+#define YYLAST   54
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  16
+#define YYNTOKENS  25
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  5
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  20
+#define YYNRULES  29
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  23
+#define YYNSTATES  32
 
 /* YYMAXUTOK -- Last valid token kind.  */
-#define YYMAXUTOK   270
+#define YYMAXUTOK   279
 
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
@@ -520,16 +529,16 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
        5,     6,     7,     8,     9,    10,    11,    12,    13,    14,
-      15
+      15,    16,    17,    18,    19,    20,    21,    22,    23,    24
 };
 
 #if YYDEBUG
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    51,    51,    53,    65,    71,    73,    80,    80,    80,
-      80,    80,    80,    80,    80,    80,    80,    80,    80,   156,
-     159
+       0,    54,    54,    56,    68,    74,    76,    83,    83,    83,
+      83,    83,    83,    83,    83,    83,    83,    83,    83,   159,
+     162,   165,   168,   171,   174,   177,   180,   183,   186,   189
 };
 #endif
 
@@ -546,9 +555,12 @@ static const char *yysymbol_name (yysymbol_kind_t yysymbol) YY_ATTRIBUTE_UNUSED;
 static const char *const yytname[] =
 {
   "\"end of file\"", "error", "\"invalid token\"", "TIMESTAMP",
-  "IP_ADDRESS", "HOSTNAME", "NUMBER", "UFW_RESET", "SUDO_KEYWORD", "COLON",
-  "SEMICOLON", "AT", "SLASH", "DASH", "EQUALS", "NEWLINE", "$accept",
-  "log_file", "tokens_optional", "any_token", "firewall_command", YY_NULLPTR
+  "IP_ADDRESS", "HOSTNAME", "NUMBER", "UFW_RESET", "UFW_DISABLE",
+  "UFW_ENABLE", "SUDO_KEYWORD", "IPTABLES_FLUSH", "IPTABLES_DELETE",
+  "IPTABLES_RULE_CHANGE", "FIREWALL_RELOAD", "FIREWALL_STOP",
+  "CHMOD_DANGEROUS", "SU_ROOT", "COLON", "SEMICOLON", "AT", "SLASH",
+  "DASH", "EQUALS", "NEWLINE", "$accept", "log_file", "tokens_optional",
+  "any_token", "firewall_command", YY_NULLPTR
 };
 
 static const char *
@@ -572,9 +584,10 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-      -4,    17,    -4,    -3,    -4,    -4,    -4,    -4,    -4,    19,
-      -4,    -4,    -4,    -4,    -4,    -4,    -4,    -4,    -4,    19,
-      -4,    10,    -4
+      -4,    26,    -4,    -3,    -4,    -4,    -4,    -4,    -4,    -4,
+      -4,    37,    -4,    -4,    -4,    -4,    -4,    -4,    -4,    -4,
+      -4,    -4,    -4,    -4,    -4,    -4,    -4,    -4,    37,    -4,
+      19,    -4
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -582,21 +595,22 @@ static const yytype_int8 yypact[] =
    means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       2,     5,     1,     4,     7,     8,     9,    10,    19,    17,
-      11,    12,    13,    14,    15,    16,    18,     6,     5,     0,
-      20,     3,    17
+       2,     5,     1,     4,     7,     8,     9,    10,    19,    20,
+      21,    17,    22,    23,    24,    25,    26,    27,    28,    11,
+      12,    13,    14,    15,    16,    18,     6,     5,     0,    29,
+       3,    17
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-      -4,    -4,    11,    -4,    25
+      -4,    -4,     0,    -4,    25
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-       0,     1,     3,    17,    20
+       0,     1,     3,    26,    29
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -605,32 +619,39 @@ static const yytype_int8 yydefgoto[] =
 static const yytype_int8 yytable[] =
 {
        4,     5,     6,     7,     8,     9,    10,    11,    12,    13,
-      14,    15,    16,     4,     5,     6,     7,     2,    22,    10,
-      11,    12,    13,    14,    15,    16,     8,    19,    18,    21
+      14,    15,    16,    17,    18,    19,    20,    21,    22,    23,
+      24,    25,     4,     5,     6,     7,     2,    30,    27,    31,
+       0,     0,     0,     0,     0,     0,     0,    19,    20,    21,
+      22,    23,    24,    25,     8,     9,    10,    28,    12,    13,
+      14,    15,    16,    17,    18
 };
 
 static const yytype_int8 yycheck[] =
 {
        3,     4,     5,     6,     7,     8,     9,    10,    11,    12,
-      13,    14,    15,     3,     4,     5,     6,     0,     8,     9,
-      10,    11,    12,    13,    14,    15,     7,     8,     3,    18
+      13,    14,    15,    16,    17,    18,    19,    20,    21,    22,
+      23,    24,     3,     4,     5,     6,     0,    27,     3,    10,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,    18,    19,    20,
+      21,    22,    23,    24,     7,     8,     9,    10,    11,    12,
+      13,    14,    15,    16,    17
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
    state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,    17,     0,    18,     3,     4,     5,     6,     7,     8,
-       9,    10,    11,    12,    13,    14,    15,    19,    20,     8,
-      20,    18,     8
+       0,    26,     0,    27,     3,     4,     5,     6,     7,     8,
+       9,    10,    11,    12,    13,    14,    15,    16,    17,    18,
+      19,    20,    21,    22,    23,    24,    28,    29,    10,    29,
+      27,    10
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
-       0,    16,    17,    17,    17,    18,    18,    19,    19,    19,
-      19,    19,    19,    19,    19,    19,    19,    19,    19,    20,
-      20
+       0,    25,    26,    26,    26,    27,    27,    28,    28,    28,
+      28,    28,    28,    28,    28,    28,    28,    28,    28,    29,
+      29,    29,    29,    29,    29,    29,    29,    29,    29,    29
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
@@ -638,7 +659,7 @@ static const yytype_int8 yyr2[] =
 {
        0,     2,     0,     4,     2,     0,     2,     1,     1,     1,
        1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
-       2
+       1,     1,     1,     1,     1,     1,     1,     1,     1,     2
 };
 
 
@@ -1102,7 +1123,7 @@ yyreduce:
   switch (yyn)
     {
   case 3: /* log_file: log_file tokens_optional firewall_command tokens_optional  */
-#line 54 "./firewall_parser.y"
+#line 57 "./firewall_parser.y"
     {
         if ((yyvsp[-1].event)) {
             if (event_list == NULL) {
@@ -1114,35 +1135,107 @@ yyreduce:
             }
         }
     }
-#line 1118 "../build/firewall/firewall_parser.tab.c"
+#line 1139 "../build/firewall/firewall_parser.tab.c"
     break;
 
   case 4: /* log_file: log_file tokens_optional  */
-#line 66 "./firewall_parser.y"
+#line 69 "./firewall_parser.y"
     {
         /* Ignore lines without firewall commands */
     }
-#line 1126 "../build/firewall/firewall_parser.tab.c"
+#line 1147 "../build/firewall/firewall_parser.tab.c"
     break;
 
   case 6: /* tokens_optional: tokens_optional any_token  */
-#line 74 "./firewall_parser.y"
+#line 77 "./firewall_parser.y"
     {
         /* Accept any tokens */
     }
-#line 1134 "../build/firewall/firewall_parser.tab.c"
+#line 1155 "../build/firewall/firewall_parser.tab.c"
     break;
 
   case 19: /* firewall_command: UFW_RESET  */
-#line 156 "./firewall_parser.y"
+#line 159 "./firewall_parser.y"
               {
         (yyval.event) = create_firewall_event("ufw_reset", "critical", "UFW firewall rules were reset");
     }
-#line 1142 "../build/firewall/firewall_parser.tab.c"
+#line 1163 "../build/firewall/firewall_parser.tab.c"
     break;
 
-  case 20: /* firewall_command: SUDO_KEYWORD firewall_command  */
-#line 159 "./firewall_parser.y"
+  case 20: /* firewall_command: UFW_DISABLE  */
+#line 162 "./firewall_parser.y"
+                  {
+        (yyval.event) = create_firewall_event("ufw_disable", "critical", "UFW firewall was disabled");
+    }
+#line 1171 "../build/firewall/firewall_parser.tab.c"
+    break;
+
+  case 21: /* firewall_command: UFW_ENABLE  */
+#line 165 "./firewall_parser.y"
+                 {
+        (yyval.event) = create_firewall_event("ufw_enable", "medium", "UFW firewall was enabled");
+    }
+#line 1179 "../build/firewall/firewall_parser.tab.c"
+    break;
+
+  case 22: /* firewall_command: IPTABLES_FLUSH  */
+#line 168 "./firewall_parser.y"
+                     {
+        (yyval.event) = create_firewall_event("iptables_flush", "critical", "IPTables rules were flushed");
+    }
+#line 1187 "../build/firewall/firewall_parser.tab.c"
+    break;
+
+  case 23: /* firewall_command: IPTABLES_DELETE  */
+#line 171 "./firewall_parser.y"
+                      {
+        (yyval.event) = create_firewall_event("iptables_delete", "high", "IPTables chain was deleted");
+    }
+#line 1195 "../build/firewall/firewall_parser.tab.c"
+    break;
+
+  case 24: /* firewall_command: IPTABLES_RULE_CHANGE  */
+#line 174 "./firewall_parser.y"
+                           {
+        (yyval.event) = create_firewall_event("iptables_rule_change", "medium", "IPTables rule was modified");
+    }
+#line 1203 "../build/firewall/firewall_parser.tab.c"
+    break;
+
+  case 25: /* firewall_command: FIREWALL_RELOAD  */
+#line 177 "./firewall_parser.y"
+                      {
+        (yyval.event) = create_firewall_event("firewall_reload", "medium", "Firewall configuration was reloaded");
+    }
+#line 1211 "../build/firewall/firewall_parser.tab.c"
+    break;
+
+  case 26: /* firewall_command: FIREWALL_STOP  */
+#line 180 "./firewall_parser.y"
+                    {
+        (yyval.event) = create_firewall_event("firewall_stop", "critical", "Firewall service was stopped");
+    }
+#line 1219 "../build/firewall/firewall_parser.tab.c"
+    break;
+
+  case 27: /* firewall_command: CHMOD_DANGEROUS  */
+#line 183 "./firewall_parser.y"
+                      {
+        (yyval.event) = create_firewall_event("chmod_dangerous", "critical", "Dangerous file permissions change detected");
+    }
+#line 1227 "../build/firewall/firewall_parser.tab.c"
+    break;
+
+  case 28: /* firewall_command: SU_ROOT  */
+#line 186 "./firewall_parser.y"
+              {
+        (yyval.event) = create_firewall_event("su_root", "high", "Privilege escalation to root detected");
+    }
+#line 1235 "../build/firewall/firewall_parser.tab.c"
+    break;
+
+  case 29: /* firewall_command: SUDO_KEYWORD firewall_command  */
+#line 189 "./firewall_parser.y"
                                     {
         (yyval.event) = (yyvsp[0].event);
         if ((yyval.event)) {
@@ -1156,11 +1249,11 @@ yyreduce:
             }
         }
     }
-#line 1160 "../build/firewall/firewall_parser.tab.c"
+#line 1253 "../build/firewall/firewall_parser.tab.c"
     break;
 
 
-#line 1164 "../build/firewall/firewall_parser.tab.c"
+#line 1257 "../build/firewall/firewall_parser.tab.c"
 
       default: break;
     }
@@ -1353,7 +1446,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 178 "./firewall_parser.y"
+#line 208 "./firewall_parser.y"
 
 
 void yyerror(const char* msg) {
@@ -1603,4 +1696,6 @@ void free_firewall_events(FirewallEvent* events) {
         current = next;
     }
 }
+
+
 

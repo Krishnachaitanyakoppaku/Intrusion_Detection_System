@@ -37,5 +37,6 @@ void free_rule(Rule* rule);
 void free_rule_list(Rule* rule_list);
 void print_rule(Rule* rule);
 void print_rule_list(Rule* rule_list);
+const char* get_rule_option(Rule* rule, const char* name);
 
 #endif // AST_H

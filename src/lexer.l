@@ -99,9 +99,8 @@ void yyerror(const char* msg);
 "#"[^\n]*       { }
 
 .           { 
-    fprintf(stderr, "ERROR: Lexical error at line %d: unexpected character '%c' (ASCII: %d)\n", 
-            yylineno, yytext[0], (int)yytext[0]);
-    fprintf(stderr, "       Expected: valid rule token (alert, log, pass, tcp, udp, icmp, etc.)\n");
+    fprintf(stderr, "Lexical error: unexpected character '%c' at line %d\n", 
+            yytext[0], yylineno);
     return yytext[0]; 
 }
 

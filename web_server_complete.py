@@ -367,11 +367,11 @@ class IDSHandler(http.server.SimpleHTTPRequestHandler):
 
 CRITICAL REQUIREMENTS - You MUST follow this EXACT format:
 
-alert [protocol] [src_ip] [src_port] -> [dst_ip] [dst_port] (msg:"[message]"; priority:[1-5]);
+alert [protocol] [src_ip] [src_port] -> [dst_ip] [dst_port] (msg:"[message]";priority:[1-5]);
 
 MANDATORY SYNTAX RULES:
 1. MUST end with semicolon (;)
-2. Options MUST be inside parentheses: (msg:"..."; priority:...)
+2. Options MUST be inside parentheses: (msg:"...";priority:...)
 3. For ICMP rules: ALWAYS use "any any" for BOTH source and destination ports (ICMP doesn't use ports, but parser requires port fields)
 4. For TCP/UDP rules: Use actual port numbers (e.g., 80, 443, 22) or "any"
 5. Direction MUST be "->" (not "<>")
