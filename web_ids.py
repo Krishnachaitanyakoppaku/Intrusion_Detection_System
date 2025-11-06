@@ -28,7 +28,7 @@ FIREWALL_DIR = os.path.join(BASE_DIR, 'firewall')
 FIREWALL_LOG = os.path.join(FIREWALL_DIR, 'logs', 'firewall.log')
 
 # Gemini API integration (same as web_server_complete.py)
-GEMINI_API_KEY = "AIzaSyApvXNq995-ko9v0KaxWDhDEufVtHNCGHI"
+GEMINI_API_KEY = ""
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
 
 # Optional: firewall parser integration (Lex/Yacc-based) if built
